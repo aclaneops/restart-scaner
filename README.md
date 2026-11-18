@@ -64,13 +64,17 @@ python3 app.py
 
 ## 📋 5. Fitur Aplikasi Desktop
 
-1. **Auto-Detect Port COM**: Memilih port USB serial Arduino Mega secara otomatis.
-2. **Kontrol Manual**:
-   - **⚡ RESTART SCANNER**: Memutus daya selama durasi yang ditentukan (default 4 detik) lalu menghidupkannya kembali.
-   - **🔴 Power OFF**: Mematikan daya scanner terus-menerus.
-   - **🟢 Power ON**: Menghidupkan kembali daya scanner.
-3. **Scheduler Terjadwal (2 Mode)**:
-   - **Mode Harian Spesifik**: Menjalankan restart setiap jam tertentu (contoh: `02:00` tengah malam).
-   - **Mode Interval**: Menjalankan restart rutin setiap X menit (contoh: setiap `360` menit / 6 jam).
-   - Hitung mundur (*countdown*) waktu eksekusi berikutnya ditampilkan secara real-time.
-4. **Auto-Save Settings**: Menyimpan port COM terakhir, durasi restart, dan konfigurasi jadwal ke file `config.json`.
+1. **Auto-Detect Port Fisik USB (Hotplug Detect)**: Mendeteksi port USB Arduino Mega secara otomatis saat dicolok/dicabut di Windows maupun Mac.
+2. **Kontrol Daya Manual**:
+   - **⚡ RESTART PERANGKAT**: Memutus daya selama durasi yang ditentukan (default 4 detik) lalu menghidupkannya kembali.
+   - **🔴 Matikan Arus (Power OFF)**: Mematikan daya terus-menerus.
+   - **🟢 Alirkan Arus (Power ON)**: Mengalirkan kembali arus secara normal.
+3. **Jam Real-Time EPC Host**: Menampilkan jam digital sistem host PC secara langsung.
+4. **Penjadwalan Fleksibel Lengkap (5 Tab)**:
+   - **Tab 1: 📅 Setiap Hari (Daily)**: Restart otomatis setiap jam & menit tertentu (misal: 02:00 WIB).
+   - **Tab 2: 🗓️ Hari Tertentu (Senin-Minggu)**: Pilih hari-hari kerja atau hari tertentu saja.
+   - **Tab 3: 📆 Tanggal Tiap Bulan**: Restart rutin setiap tanggal X tiap bulan.
+   - **Tab 4: 🎯 Tanggal Kalender Spesifik**: Jadwal 1x jalan pada tanggal kalender tertentu di masa depan.
+   - **Tab 5: ⏱️ Interval Rutin**: Restart otomatis setiap X menit (contoh: tiap 360 menit / 6 jam).
+5. **Auto-Save Settings & Logging**: Menyimpan preferensi port, tab aktif, dan pengaturan ke `config.json` serta mencatat semua aktivitas ke `scanner_activity.log`.
+6. **Automated CI/CD Build**: Otomatis menghasilkan `ScannerRestarter.exe` via GitHub Actions setiap kali push ke repository.
