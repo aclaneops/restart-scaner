@@ -1,0 +1,22 @@
+{
+    "last_port": "/dev/cu.usbmodem1301",
+    "baud_rate": 9600,
+    "restart_duration_sec": 4,
+    "auto_connect_usb": false,
+    "scheduler_enabled": true,
+    "active_tab": 0,
+    "sched_hour": "02",
+    "sched_minute": "00",
+    "sched_days": [
+        "Senin",
+        "Selasa",
+        "Rabu",
+        "Kamis",
+        "Jumat"
+    ],
+    "sched_month_date": 1,
+    "sched_specific_year": 2026,
+    "sched_specific_month": 11,
+    "sched_specific_day": 20,
+    "sched_interval_minutes": 360
+}

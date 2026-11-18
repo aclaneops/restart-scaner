@@ -1,0 +1,26 @@
+{
+    "last_port": "/dev/cu.RPP02N",
+    "baud_rate": 9600,
+    "restart_duration_sec": 4,
+    "auto_connect_usb": true,
+    "scheduler_enabled": false,
+    "schedule_pattern": "interval",
+    "sched_hour": "02",
+    "sched_minute": "00",
+    "sched_days": [
+        "Senin",
+        "Selasa",
+        "Rabu",
+        "Kamis",
+        "Jumat"
+    ],
+    "sched_month_date": 1,
+    "sched_specific_year": 2026,
+    "sched_specific_month": 11,
+    "sched_specific_day": 20,
+    "sched_interval_minutes": 360,
+    "scheduler_mode": "daily",
+    "daily_time": "02:00",
+    "interval_minutes": 360,
+    "countdown_minutes": 15
+}

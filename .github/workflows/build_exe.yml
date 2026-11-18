@@ -1,0 +1,44 @@
+name: Build Windows Standalone EXE
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pyserial pyinstaller
+
+      - name: Build Standalone EXE with PyInstaller
+        run: |
+          cd desktop_app
+          pyinstaller --noconfirm --onedir --windowed --name "ScannerRestarter" app.py
+
+      - name: Copy Extra Files to Dist
+        run: |
+          copy desktop_app\config.json desktop_app\dist\ScannerRestarter\
+          copy skema_wiring_relay.png desktop_app\dist\ScannerRestarter\
+          copy README.md desktop_app\dist\ScannerRestarter\
+
+      - name: Create ZIP Archive
+        run: |
+          Compress-Archive -Path desktop_app\dist\ScannerRestarter\* -DestinationPath ScannerRestarter_Windows.zip
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ScannerRestarter_Windows_EXE
+          path: ScannerRestarter_Windows.zip
