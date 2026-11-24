@@ -5,3 +5,4 @@ dist/
 *.spec
 *.log
 .DS_Store
+._*

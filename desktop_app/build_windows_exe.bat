@@ -12,6 +12,11 @@ echo.
 echo Mengompilasi dengan PyInstaller...
 pyinstaller --noconfirm --onedir --windowed --name "ScannerRestarter" app.py
 
+if exist ..\drivers (
+    echo Menyalin folder drivers...
+    xcopy /E /I /Y ..\drivers dist\ScannerRestarter\drivers
+)
+
 echo.
 echo ========================================================
 echo  Selesai! File aplikasi berada di folder: dist\ScannerRestarter

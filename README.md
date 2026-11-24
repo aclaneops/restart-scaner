@@ -78,3 +78,13 @@ python3 app.py
    - **Tab 5: ⏱️ Interval Rutin**: Restart otomatis setiap X menit (contoh: tiap 360 menit / 6 jam).
 5. **Auto-Save Settings & Logging**: Menyimpan preferensi port, tab aktif, dan pengaturan ke `config.json` serta mencatat semua aktivitas ke `scanner_activity.log`.
 6. **Automated CI/CD Build**: Otomatis menghasilkan `ScannerRestarter.exe` via GitHub Actions setiap kali push ke repository.
+
+---
+
+## 💾 6. Driver USB Arduino untuk Windows / PC EPC
+
+Folder `drivers/` sudah disertakan langsung di dalam repository ini agar PC EPC dapat langsung mengenali Arduino:
+- **`drivers/CH340_Windows/CH341SER.EXE`**: Driver untuk Arduino Mega kloning (chip CH340 / CH341). Wajib diinstall di Windows 7, 8, 10, maupun 11.
+- **`drivers/Arduino_Official/`**: Berisi installer resmi Arduino (`dpinst-amd64.exe` / `dpinst-x86.exe` dan `arduino.inf`) untuk chip ATmega16U2 (Arduino Original), terutama jika PC EPC menggunakan Windows 7 / 8 / POSReady 7.
+
+> Panduan lengkap dan langkah instalasi dapat dibaca di [drivers/README.md](drivers/README.md).
