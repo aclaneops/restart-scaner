@@ -1,10 +1,11 @@
 """
 =====================================================================
-EPC HARDWARE RESTARTER (SIMPLIFIED & CLEAN MODERN UI)
+KCI GATE SCANNER RESTARTER & CONTROLLER (LEGACY WINFORMS STYLE)
 =====================================================================
-Target Perangkat : 2x Scanner QR Turnstile Gate Kereta
+Target Perangkat : Scanner QR Turnstile Gate Kereta (Gate In & Gate Out)
 Target Board     : Arduino Mega 2560 (Relay 2-CH / 4-CH Active-LOW)
 Platform Host    : Windows 7, POSReady 7, Windows 10, Windows 11 & macOS
+Tampilan         : Classic WinForms Industrial (Sandingan Aplikasi KCI_GATE)
 =====================================================================
 """
 
@@ -43,32 +44,37 @@ DEFAULT_CONFIG = {
     "sched_specific_year": 2026,
     "sched_specific_month": 11,
     "sched_specific_day": 26,
-    "sched_interval_minutes": 360
+    "sched_interval_minutes": 360,
+    "station_id": "JAK",
+    "gate_id": "101"
 }
 
-SIMULATION_PORT = "[Simulasi / Virtual Arduino Mega]"
+SIMULATION_PORT = "[SIMULASI / DEMO VIRTUAL]"
 
-# Palet Warna Minimalis & Tenang (Clean Slate UI - Tidak Rame)
-CLR_BG = "#f8fafc"         # Background utama abu-abu sangat muda
-CLR_CARD = "#ffffff"       # Card putih bersih
-CLR_BORDER = "#e2e8f0"     # Garis batas halus
-CLR_TEXT = "#1e293b"       # Teks utama slate gelap
-CLR_MUTED = "#64748b"      # Teks sekunder abu-abu
-CLR_PRIMARY = "#2563eb"    # Biru profesional
-CLR_GREEN = "#16a34a"      # Hijau indikator normal
-CLR_RED = "#dc2626"        # Merah indikator putus
-CLR_AMBER = "#d97706"      # Kuning saat restart
-CLR_DARK = "#0f172a"       # Hitam untuk console log
+# Palet Warna Classic Windows Forms (KCI Industrial POS)
+WIN_BG = "#d4d0c8"        # Classic Windows 7 / WinForms Dialog Gray
+WIN_BTN = "#e0dfd8"       # Classic Button Face
+WIN_BORDER = "#808080"    # Dark Shadow
+BAR_BLACK = "#000000"     # Header Hitam
+STATUS_GREEN = "#00e600"  # Hijau Terang KCI (Normal)
+STATUS_RED = "#ff3333"    # Merah KCI (Error/Terputus)
+STATUS_AMBER = "#ffcc00"  # Kuning KCI (Restarting)
+TERM_BG = "#000000"       # Terminal Hitam Pekat
+TERM_FG = "#00ff00"       # Terminal Hijau Monospace
+FONT_MAIN = ("Tahoma", 8)
+FONT_BOLD = ("Tahoma", 8, "bold")
+FONT_TITLE = ("Tahoma", 8, "bold")
+FONT_TERM = ("Courier", 8)
 
-class SimplifiedStationGateRestarterApp:
+class KciGateRestarterApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("EPC Gate Scanner Restarter")
-        self.root.geometry("640x700")
-        self.root.minsize(600, 640)
-        self.root.configure(bg=CLR_BG)
-
-        self.setup_theme()
+        self.root.title("KCI_GATE_REST v2.4")
+        
+        # Jendela Ringkas & Kompak (Tidak Fullscreen, agar bisa sandingan dengan KCI_GATE)
+        self.root.geometry("560x590+30+30")
+        self.root.minsize(540, 560)
+        self.root.configure(bg=WIN_BG)
 
         self.ser = None
         self.is_simulation = False
@@ -84,22 +90,9 @@ class SimplifiedStationGateRestarterApp:
         self.apply_config_to_ui()
         self.refresh_ports(auto_select=True)
 
-        self.start_epc_clock_timer()
+        self.start_clock_timer()
         self.start_usb_hotplug_monitor()
         self.start_scheduler_engine()
-
-    def setup_theme(self):
-        style = ttk.Style()
-        try:
-            if "clam" in style.theme_names():
-                style.theme_use("clam")
-        except Exception:
-            pass
-        style.configure("TNotebook", background=CLR_BG, borderwidth=0)
-        style.configure("TNotebook.Tab", background="#e2e8f0", foreground=CLR_TEXT, padding=[12, 5], font=("Arial", 9))
-        style.map("TNotebook.Tab", background=[("selected", CLR_CARD)], foreground=[("selected", CLR_PRIMARY)])
-        style.configure("TCombobox", fieldbackground="#ffffff", background="#ffffff", foreground=CLR_TEXT)
-        style.configure("TSpinbox", fieldbackground="#ffffff", background="#ffffff", foreground=CLR_TEXT)
 
     def load_config(self):
         if os.path.exists(CONFIG_FILE):
@@ -135,253 +128,258 @@ class SimplifiedStationGateRestarterApp:
             pass
 
     # ==========================================
-    # UI SETUP: LEBIH SIMPEL, BERSIH & RAPI
+    # DESAIN PERSIS KCI_GATE INDUSTRIAL (WINFORMS)
     # ==========================================
     def setup_ui(self):
-        # 1. HEADER RINGKAS
-        header = tk.Frame(self.root, bg=CLR_CARD, bd=1, relief="solid", highlightbackground=CLR_BORDER)
-        header.pack(fill="x", padx=12, pady=(10, 8))
+        # CONTAINER 2 KOLOM (KIRI = STATUS & KONTROL, KANAN = GATE INFO & LOG)
+        main_frame = tk.Frame(self.root, bg=WIN_BG)
+        main_frame.pack(fill="both", expand=True, padx=4, pady=4)
 
-        h_left = tk.Frame(header, bg=CLR_CARD)
-        h_left.pack(side="left", padx=12, pady=10)
-        tk.Label(h_left, text="Gate Scanner Restarter", font=("Arial", 13, "bold"), fg=CLR_TEXT, bg=CLR_CARD).pack(anchor="w")
-        self.lbl_usb_status_top = tk.Label(h_left, text="● Port USB Belum Terhubung", font=("Arial", 9), fg=CLR_RED, bg=CLR_CARD)
-        self.lbl_usb_status_top.pack(anchor="w", pady=(2, 0))
+        # ----------------------------------------------------
+        # KOLOM KIRI (~46% WIDTH): STATUS DEVICE & KONTROL RELAY
+        # ----------------------------------------------------
+        col_left = tk.Frame(main_frame, bg=WIN_BG, width=240)
+        col_left.pack(side="left", fill="both", padx=(0, 4))
+        col_left.pack_propagate(False)
 
-        h_right = tk.Frame(header, bg=CLR_CARD)
-        h_right.pack(side="right", padx=12, pady=10)
-        self.lbl_clock_time = tk.Label(h_right, text="--:--:-- WIB", font=("Courier", 13, "bold"), fg=CLR_PRIMARY, bg=CLR_CARD)
-        self.lbl_clock_time.pack(anchor="e")
-        self.lbl_counter = tk.Label(h_right, text="Total Restart: 0x", font=("Arial", 9), fg=CLR_MUTED, bg=CLR_CARD)
-        self.lbl_counter.pack(anchor="e")
+        # GROUPBOX STATUS (Persis seperti di foto KCI_GATE)
+        grp_status = tk.LabelFrame(col_left, text="STATUS", font=FONT_BOLD, bg=WIN_BG, fg="#000000", bd=2, relief="groove")
+        grp_status.pack(fill="x", pady=(0, 4))
 
-        # 2. CARD KONTROL SCANNER (FOKUS UTAMA & PALING BERSIH)
-        card_scan = tk.Frame(self.root, bg=CLR_CARD, bd=1, relief="solid", highlightbackground=CLR_BORDER)
-        card_scan.pack(fill="x", padx=12, pady=(0, 8))
+        # 1. SCANNER 1 (GATE IN)
+        tk.Label(grp_status, text="SCANNER 1 (GATE IN)", font=FONT_TITLE, bg=BAR_BLACK, fg="#ffffff", anchor="w", padx=3).pack(fill="x", pady=(2, 0))
+        self.lbl_stat_sc1 = tk.Label(grp_status, text="Connected [D7 Normal]", font=FONT_BOLD, bg=STATUS_GREEN, fg="#000000", bd=1, relief="solid", anchor="w", padx=3)
+        self.lbl_stat_sc1.pack(fill="x", pady=(0, 2))
 
-        tk.Label(card_scan, text="KONTROL SCANNER QR", font=("Arial", 9, "bold"), fg=CLR_MUTED, bg=CLR_CARD).pack(anchor="w", padx=12, pady=(8, 4))
+        # 2. SCANNER 2 (GATE OUT)
+        tk.Label(grp_status, text="SCANNER 2 (GATE OUT)", font=FONT_TITLE, bg=BAR_BLACK, fg="#ffffff", anchor="w", padx=3).pack(fill="x", pady=(2, 0))
+        self.lbl_stat_sc2 = tk.Label(grp_status, text="Connected [D8 Normal]", font=FONT_BOLD, bg=STATUS_GREEN, fg="#000000", bd=1, relief="solid", anchor="w", padx=3)
+        self.lbl_stat_sc2.pack(fill="x", pady=(0, 2))
 
-        # 2 Kolom: Scanner 1 & Scanner 2
-        row_gates = tk.Frame(card_scan, bg=CLR_CARD)
-        row_gates.pack(fill="x", padx=10, pady=(0, 6))
+        # 3. GATE RELAY (FAIL-SAFE NC)
+        tk.Label(grp_status, text="GATE RELAY", font=FONT_TITLE, bg=BAR_BLACK, fg="#ffffff", anchor="w", padx=3).pack(fill="x", pady=(2, 0))
+        self.lbl_stat_relay = tk.Label(grp_status, text="Normally Closed (Fail-Safe OK)", font=FONT_BOLD, bg=STATUS_GREEN, fg="#000000", bd=1, relief="solid", anchor="w", padx=3)
+        self.lbl_stat_relay.pack(fill="x", pady=(0, 2))
 
-        # Kolom Scanner 1
-        box1 = tk.Frame(row_gates, bg="#f8fafc", bd=1, relief="solid", highlightbackground=CLR_BORDER, padx=10, pady=8)
-        box1.pack(side="left", fill="both", expand=True, padx=(0, 5))
+        # 4. CONTROLLER & WATCHDOG
+        tk.Label(grp_status, text="CONTROLLER & WATCHDOG", font=FONT_TITLE, bg=BAR_BLACK, fg="#ffffff", anchor="w", padx=3).pack(fill="x", pady=(2, 0))
+        self.lbl_stat_wdt = tk.Label(grp_status, text="Mega 2560 [WDT 8s Active]", font=FONT_BOLD, bg=STATUS_GREEN, fg="#000000", bd=1, relief="solid", anchor="w", padx=3)
+        self.lbl_stat_wdt.pack(fill="x", pady=(0, 2))
 
-        tk.Label(box1, text="Scanner 1 (Gate In)", font=("Arial", 10, "bold"), fg=CLR_TEXT, bg="#f8fafc").pack(anchor="w")
-        self.lbl_status_ch1 = tk.Label(box1, text="🟢 Normal (Power ON)", font=("Arial", 9), fg=CLR_GREEN, bg="#f8fafc")
-        self.lbl_status_ch1.pack(anchor="w", pady=(1, 6))
+        # 5. PORT USB COM
+        tk.Label(grp_status, text="USB SERIAL PORT", font=FONT_TITLE, bg=BAR_BLACK, fg="#ffffff", anchor="w", padx=3).pack(fill="x", pady=(2, 0))
+        self.lbl_stat_port = tk.Label(grp_status, text="Connected [COM3 @ 9600]", font=FONT_BOLD, bg=STATUS_GREEN, fg="#000000", bd=1, relief="solid", anchor="w", padx=3)
+        self.lbl_stat_port.pack(fill="x", pady=(0, 2))
 
-        self.btn_restart_ch1 = tk.Button(
-            box1,
-            text="⚡ Restart Scanner 1",
-            font=("Arial", 9, "bold"),
-            bg=CLR_PRIMARY,
-            fg="#ffffff",
-            cursor="hand2",
-            relief="flat",
-            pady=4,
-            command=lambda: self.manual_restart(1)
-        )
-        self.btn_restart_ch1.pack(fill="x")
+        # Pilihan Port USB & Connect
+        f_port = tk.Frame(grp_status, bg=WIN_BG, padx=2, pady=2)
+        f_port.pack(fill="x")
+        self.port_combobox = ttk.Combobox(f_port, width=17, font=FONT_MAIN, state="readonly")
+        self.port_combobox.pack(side="left", fill="x", expand=True)
 
-        # Kolom Scanner 2
-        box2 = tk.Frame(row_gates, bg="#f8fafc", bd=1, relief="solid", highlightbackground=CLR_BORDER, padx=10, pady=8)
-        box2.pack(side="left", fill="both", expand=True, padx=(5, 0))
+        self.btn_connect = tk.Button(f_port, text="Connect", font=FONT_BOLD, bg=WIN_BTN, relief="raised", bd=2, command=self.toggle_connection)
+        self.btn_connect.pack(side="right", padx=(2, 0))
 
-        tk.Label(box2, text="Scanner 2 (Gate Out)", font=("Arial", 10, "bold"), fg=CLR_TEXT, bg="#f8fafc").pack(anchor="w")
-        self.lbl_status_ch2 = tk.Label(box2, text="🟢 Normal (Power ON)", font=("Arial", 9), fg=CLR_GREEN, bg="#f8fafc")
-        self.lbl_status_ch2.pack(anchor="w", pady=(1, 6))
-
-        self.btn_restart_ch2 = tk.Button(
-            box2,
-            text="⚡ Restart Scanner 2",
-            font=("Arial", 9, "bold"),
-            bg=CLR_PRIMARY,
-            fg="#ffffff",
-            cursor="hand2",
-            relief="flat",
-            pady=4,
-            command=lambda: self.manual_restart(2)
-        )
-        self.btn_restart_ch2.pack(fill="x")
-
-        # Tombol Restart Kedua Scanner Sekaligus (Staggered)
-        self.btn_restart_all = tk.Button(
-            card_scan,
-            text="⚡ Restart Kedua Scanner (Bergiliran / Jeda 1.5s)",
-            font=("Arial", 9, "bold"),
-            bg="#3b82f6",
-            fg="#ffffff",
-            cursor="hand2",
-            relief="flat",
-            pady=5,
-            command=lambda: self.manual_restart("ALL")
-        )
-        self.btn_restart_all.pack(fill="x", padx=10, pady=(2, 6))
-
-        # Opsi Pengaturan Jeda Ringkas (Single Line)
-        row_dur = tk.Frame(card_scan, bg=CLR_CARD)
-        row_dur.pack(fill="x", padx=10, pady=(0, 8))
-        tk.Label(row_dur, text="Durasi jeda putus daya:", font=("Arial", 8), fg=CLR_MUTED, bg=CLR_CARD).pack(side="left")
-        self.spin_duration = ttk.Spinbox(row_dur, from_=2, to=15, width=3)
-        self.spin_duration.set(4)
-        self.spin_duration.pack(side="left", padx=4)
-        tk.Label(row_dur, text="detik", font=("Arial", 8), fg=CLR_MUTED, bg=CLR_CARD).pack(side="left")
-
-        # Tombol Manual Override yang Rapi
-        btn_power_cut = tk.Button(row_dur, text="Matikan Total", font=("Arial", 7), fg=CLR_RED, bd=0, bg=CLR_CARD, cursor="hand2", command=self.open_power_menu)
-        btn_power_cut.pack(side="right")
-
-        # 3. CARD KONEKSI USB SERIAL (KOMPAK 1 BARIS)
-        card_usb = tk.Frame(self.root, bg=CLR_CARD, bd=1, relief="solid", highlightbackground=CLR_BORDER)
-        card_usb.pack(fill="x", padx=12, pady=(0, 8))
-
-        row_u = tk.Frame(card_usb, bg=CLR_CARD, padx=10, pady=8)
-        row_u.pack(fill="x")
-
-        tk.Label(row_u, text="Port USB:", font=("Arial", 9, "bold"), fg=CLR_TEXT, bg=CLR_CARD).pack(side="left")
-        self.port_combobox = ttk.Combobox(row_u, width=32, state="readonly")
-        self.port_combobox.pack(side="left", padx=6)
-
-        btn_rescan = tk.Button(row_u, text="🔄", font=("Arial", 8), bg="#e2e8f0", fg=CLR_TEXT, bd=1, command=lambda: self.refresh_ports(auto_select=False))
-        btn_rescan.pack(side="left", padx=(0, 6))
-
-        self.baud_combobox = ttk.Combobox(row_u, values=["9600", "19200", "115200"], width=6, state="readonly")
+        row_chk = tk.Frame(grp_status, bg=WIN_BG, padx=2)
+        row_chk.pack(fill="x")
+        self.var_autoconnect = tk.BooleanVar(value=True)
+        chk_auto = tk.Checkbutton(row_chk, text="Auto-Connect USB", variable=self.var_autoconnect, font=FONT_MAIN, bg=WIN_BG, activebackground=WIN_BG, command=self.save_config)
+        chk_auto.pack(side="left")
+        self.baud_combobox = ttk.Combobox(row_chk, values=["9600", "19200", "115200"], width=6, font=FONT_MAIN, state="readonly")
         self.baud_combobox.set("9600")
 
-        self.btn_connect = tk.Button(
-            row_u,
-            text="Hubungkan",
-            font=("Arial", 9, "bold"),
-            bg=CLR_GREEN,
-            fg="#ffffff",
-            cursor="hand2",
-            relief="flat",
-            padx=8,
-            command=self.toggle_connection
+        # GROUPBOX RESTART CONTROL (WinForms Raised Buttons)
+        grp_ctrl = tk.LabelFrame(col_left, text="MANUAL RESTART", font=FONT_BOLD, bg=WIN_BG, fg="#000000", bd=2, relief="groove")
+        grp_ctrl.pack(fill="both", expand=True, pady=(2, 0))
+
+        # Durasi
+        dur_f = tk.Frame(grp_ctrl, bg=WIN_BG)
+        dur_f.pack(fill="x", padx=4, pady=2)
+        tk.Label(dur_f, text="Jeda Arus Mati:", font=FONT_MAIN, bg=WIN_BG).pack(side="left")
+        self.spin_duration = ttk.Spinbox(dur_f, from_=2, to=15, width=3, font=FONT_MAIN)
+        self.spin_duration.set(4)
+        self.spin_duration.pack(side="left", padx=4)
+        tk.Label(dur_f, text="detik", font=FONT_MAIN, bg=WIN_BG).pack(side="left")
+
+        # Tombol Restart Scanner 1
+        self.btn_restart_ch1 = tk.Button(
+            grp_ctrl,
+            text="Restart Scanner 1 (IN)",
+            font=FONT_BOLD,
+            bg=WIN_BTN,
+            relief="raised",
+            bd=2,
+            pady=3,
+            command=lambda: self.manual_restart(1)
         )
-        self.btn_connect.pack(side="right")
+        self.btn_restart_ch1.pack(fill="x", padx=4, pady=2)
 
-        self.var_autoconnect = tk.BooleanVar(value=True)
-        chk_auto = tk.Checkbutton(row_u, text="Auto-Connect", variable=self.var_autoconnect, font=("Arial", 8), fg=CLR_MUTED, bg=CLR_CARD, activebackground=CLR_CARD, command=self.save_config)
-        chk_auto.pack(side="right", padx=6)
+        # Tombol Restart Scanner 2
+        self.btn_restart_ch2 = tk.Button(
+            grp_ctrl,
+            text="Restart Scanner 2 (OUT)",
+            font=FONT_BOLD,
+            bg=WIN_BTN,
+            relief="raised",
+            bd=2,
+            pady=3,
+            command=lambda: self.manual_restart(2)
+        )
+        self.btn_restart_ch2.pack(fill="x", padx=4, pady=2)
 
-        # 4. CARD PENJADWALAN OTOMATIS (LEBIH RINGKAS & BERSIH)
-        card_sched = tk.Frame(self.root, bg=CLR_CARD, bd=1, relief="solid", highlightbackground=CLR_BORDER)
-        card_sched.pack(fill="x", padx=12, pady=(0, 8))
+        # Tombol Restart Kedua Scanner (Staggered)
+        self.btn_restart_all = tk.Button(
+            grp_ctrl,
+            text="Restart Keduanya (Staggered)",
+            font=FONT_BOLD,
+            bg=WIN_BTN,
+            relief="raised",
+            bd=2,
+            pady=3,
+            command=lambda: self.manual_restart("ALL")
+        )
+        self.btn_restart_all.pack(fill="x", padx=4, pady=(2, 4))
 
-        top_s = tk.Frame(card_sched, bg=CLR_CARD, padx=10, pady=(8, 4))
-        top_s.pack(fill="x")
+        # Cut / Normal Daya Darurat
+        row_pwr = tk.Frame(grp_ctrl, bg=WIN_BG)
+        row_pwr.pack(fill="x", padx=4, pady=2)
+        tk.Button(row_pwr, text="Cut Ch1", font=FONT_MAIN, bg=WIN_BTN, relief="raised", bd=1, command=lambda: self.send_serial_command("POWER:1:OFF")).pack(side="left", fill="x", expand=True, padx=(0, 1))
+        tk.Button(row_pwr, text="On Ch1", font=FONT_MAIN, bg=WIN_BTN, relief="raised", bd=1, command=lambda: self.send_serial_command("POWER:1:ON")).pack(side="left", fill="x", expand=True, padx=(1, 1))
+        tk.Button(row_pwr, text="Cut Ch2", font=FONT_MAIN, bg=WIN_BTN, relief="raised", bd=1, command=lambda: self.send_serial_command("POWER:2:OFF")).pack(side="left", fill="x", expand=True, padx=(1, 1))
+        tk.Button(row_pwr, text="On Ch2", font=FONT_MAIN, bg=WIN_BTN, relief="raised", bd=1, command=lambda: self.send_serial_command("POWER:2:ON")).pack(side="left", fill="x", expand=True, padx=(1, 0))
 
+        # ----------------------------------------------------
+        # KOLOM KANAN (~54% WIDTH): GATE INFO, SCHEDULER, LOG
+        # ----------------------------------------------------
+        col_right = tk.Frame(main_frame, bg=WIN_BG)
+        col_right.pack(side="right", fill="both", expand=True)
+
+        # GROUPBOX GATE INFO (Persis Tabel di foto KCI_GATE)
+        grp_info = tk.LabelFrame(col_right, text="GATE INFO", font=FONT_BOLD, bg=WIN_BG, fg="#000000", bd=2, relief="groove")
+        grp_info.pack(fill="x", pady=(0, 4))
+
+        # TABEL HEADER HITAM
+        tbl_hdr = tk.Frame(grp_info, bg=BAR_BLACK)
+        tbl_hdr.pack(fill="x")
+        tk.Label(tbl_hdr, text="STATION", font=FONT_BOLD, bg=BAR_BLACK, fg="#ffffff", width=8, anchor="center").pack(side="left", padx=1)
+        tk.Label(tbl_hdr, text="GATE ID", font=FONT_BOLD, bg=BAR_BLACK, fg="#ffffff", width=8, anchor="center").pack(side="left", padx=1)
+        tk.Label(tbl_hdr, text="PORT", font=FONT_BOLD, bg=BAR_BLACK, fg="#ffffff", width=7, anchor="center").pack(side="left", padx=1)
+        tk.Label(tbl_hdr, text="DIRECTION", font=FONT_BOLD, bg=BAR_BLACK, fg="#ffffff", width=11, anchor="center").pack(side="left", padx=1)
+
+        # TABEL ROW ISI
+        tbl_row = tk.Frame(grp_info, bg="#ffffff", bd=1, relief="solid")
+        tbl_row.pack(fill="x")
+        self.lbl_tbl_stn = tk.Label(tbl_row, text="JAK", font=FONT_MAIN, bg="#ffffff", width=8, anchor="center")
+        self.lbl_tbl_stn.pack(side="left", padx=1)
+        self.lbl_tbl_gate = tk.Label(tbl_row, text="GT-101", font=FONT_MAIN, bg="#ffffff", width=8, anchor="center")
+        self.lbl_tbl_gate.pack(side="left", padx=1)
+        self.lbl_tbl_port = tk.Label(tbl_row, text="COM3", font=FONT_MAIN, bg="#ffffff", width=7, anchor="center")
+        self.lbl_tbl_port.pack(side="left", padx=1)
+        tk.Label(tbl_row, text="IN & OUT", font=FONT_MAIN, bg="#ffffff", width=11, anchor="center").pack(side="left", padx=1)
+
+        # GROUPBOX SCHEDULER OTOMATIS
+        grp_sched = tk.LabelFrame(col_right, text="SCHEDULER AUTO", font=FONT_BOLD, bg=WIN_BG, fg="#000000", bd=2, relief="groove")
+        grp_sched.pack(fill="x", pady=(0, 4))
+
+        s_top = tk.Frame(grp_sched, bg=WIN_BG, padx=4, pady=2)
+        s_top.pack(fill="x")
         self.var_sched_enabled = tk.BooleanVar(value=False)
-        self.chk_sched = tk.Checkbutton(
-            top_s,
-            text="Aktifkan Jadwal Otomatis",
-            variable=self.var_sched_enabled,
-            font=("Arial", 9, "bold"),
-            fg=CLR_TEXT,
-            bg=CLR_CARD,
-            activebackground=CLR_CARD,
-            command=self.on_scheduler_toggle
-        )
+        self.chk_sched = tk.Checkbutton(s_top, text="Enable", variable=self.var_sched_enabled, font=FONT_BOLD, bg=WIN_BG, activebackground=WIN_BG, command=self.on_scheduler_toggle)
         self.chk_sched.pack(side="left")
 
-        # Jam Eksekusi
-        tk.Label(top_s, text="Jam:", font=("Arial", 8, "bold"), fg=CLR_MUTED, bg=CLR_CARD).pack(side="right", padx=(4, 0))
-        self.combo_min = ttk.Combobox(top_s, values=[f"{i:02d}" for i in range(60)], width=3, state="readonly")
-        self.combo_min.set("00")
-        self.combo_min.pack(side="right", padx=2)
-        tk.Label(top_s, text=":", font=("Arial", 9, "bold"), bg=CLR_CARD).pack(side="right")
-        self.combo_hour = ttk.Combobox(top_s, values=[f"{i:02d}" for i in range(24)], width=3, state="readonly")
+        self.combo_sched_target = ttk.Combobox(s_top, values=["ALL", "Scanner 1", "Scanner 2"], width=9, font=FONT_MAIN, state="readonly")
+        self.combo_sched_target.set("ALL")
+        self.combo_sched_target.pack(side="left", padx=4)
+
+        tk.Label(s_top, text="Jam:", font=FONT_MAIN, bg=WIN_BG).pack(side="left")
+        self.combo_hour = ttk.Combobox(s_top, values=[f"{i:02d}" for i in range(24)], width=3, font=FONT_MAIN, state="readonly")
         self.combo_hour.set("02")
-        self.combo_hour.pack(side="right", padx=2)
+        self.combo_hour.pack(side="left", padx=1)
+        tk.Label(s_top, text=":", font=FONT_BOLD, bg=WIN_BG).pack(side="left")
+        self.combo_min = ttk.Combobox(s_top, values=[f"{i:02d}" for i in range(60)], width=3, font=FONT_MAIN, state="readonly")
+        self.combo_min.set("00")
+        self.combo_min.pack(side="left", padx=1)
 
-        # Target Dropdown
-        self.combo_sched_target = ttk.Combobox(top_s, values=["Semua Scanner (ALL)", "Scanner 1 Saja", "Scanner 2 Saja"], width=18, state="readonly")
-        self.combo_sched_target.set("Semua Scanner (ALL)")
-        self.combo_sched_target.pack(side="right", padx=8)
-
-        # Tabs Header
-        self.notebook = ttk.Notebook(card_sched)
-        self.notebook.pack(fill="x", padx=10, pady=2)
+        # Tabs WinForms Style
+        self.notebook = ttk.Notebook(grp_sched)
+        self.notebook.pack(fill="x", padx=4, pady=2)
         self.notebook.bind("<<NotebookTabChanged>>", lambda e: self.save_config())
 
-        # TAB 1: Setiap Hari
-        self.tab_daily = tk.Frame(self.notebook, bg=CLR_CARD, padx=8, pady=6)
-        self.notebook.add(self.tab_daily, text="Setiap Hari")
-        tk.Label(self.tab_daily, text="Restart otomatis setiap hari pada jam yang dipilih (Rekomendasi stasiun: 02:00 WIB).", font=("Arial", 8), fg=CLR_MUTED, bg=CLR_CARD).pack(anchor="w")
+        # Tab 1: Daily
+        self.tab_daily = tk.Frame(self.notebook, bg=WIN_BG, padx=4, pady=4)
+        self.notebook.add(self.tab_daily, text="Daily")
+        tk.Label(self.tab_daily, text="Restart otomatis tiap hari jam 02:00 WIB (Stasiun Tutup).", font=FONT_MAIN, bg=WIN_BG).pack(anchor="w")
 
-        # TAB 2: Hari Tertentu
-        self.tab_weekly = tk.Frame(self.notebook, bg=CLR_CARD, padx=8, pady=6)
-        self.notebook.add(self.tab_weekly, text="Hari Tertentu")
-        wf = tk.Frame(self.tab_weekly, bg=CLR_CARD)
+        # Tab 2: Weekly
+        self.tab_weekly = tk.Frame(self.notebook, bg=WIN_BG, padx=4, pady=4)
+        self.notebook.add(self.tab_weekly, text="Weekly")
+        wf = tk.Frame(self.tab_weekly, bg=WIN_BG)
         wf.pack(fill="x")
         for day in HARI_INDONESIA:
             var = tk.BooleanVar(value=True)
             self.day_check_vars[day] = var
-            chk = tk.Checkbutton(wf, text=day[:3], variable=var, font=("Arial", 8), bg=CLR_CARD, fg=CLR_TEXT, activebackground=CLR_CARD, command=self.save_config)
-            chk.pack(side="left", padx=2)
+            chk = tk.Checkbutton(wf, text=day[:3], variable=var, font=FONT_MAIN, bg=WIN_BG, activebackground=WIN_BG, command=self.save_config)
+            chk.pack(side="left", padx=1)
 
-        # TAB 3: Tanggal Bulanan
-        self.tab_monthly = tk.Frame(self.notebook, bg=CLR_CARD, padx=8, pady=6)
-        self.notebook.add(self.tab_monthly, text="Tanggal Bulanan")
-        mf = tk.Frame(self.tab_monthly, bg=CLR_CARD)
+        # Tab 3: Monthly
+        self.tab_monthly = tk.Frame(self.notebook, bg=WIN_BG, padx=4, pady=4)
+        self.notebook.add(self.tab_monthly, text="Monthly")
+        mf = tk.Frame(self.tab_monthly, bg=WIN_BG)
         mf.pack(fill="x")
-        tk.Label(mf, text="Setiap Tanggal:", font=("Arial", 8), fg=CLR_TEXT, bg=CLR_CARD).pack(side="left")
-        self.spin_month_date = ttk.Spinbox(mf, from_=1, to=31, width=3)
+        tk.Label(mf, text="Tiap Tgl:", font=FONT_MAIN, bg=WIN_BG).pack(side="left")
+        self.spin_month_date = ttk.Spinbox(mf, from_=1, to=31, width=3, font=FONT_MAIN)
         self.spin_month_date.set(1)
-        self.spin_month_date.pack(side="left", padx=4)
-        tk.Label(mf, text="tiap bulan.", font=("Arial", 8), fg=CLR_MUTED, bg=CLR_CARD).pack(side="left")
+        self.spin_month_date.pack(side="left", padx=2)
 
-        # TAB 4: Tanggal Spesifik
-        self.tab_specific = tk.Frame(self.notebook, bg=CLR_CARD, padx=8, pady=6)
-        self.notebook.add(self.tab_specific, text="Tanggal Spesifik")
-        sf = tk.Frame(self.tab_specific, bg=CLR_CARD)
+        # Tab 4: Specific Date
+        self.tab_specific = tk.Frame(self.notebook, bg=WIN_BG, padx=4, pady=4)
+        self.notebook.add(self.tab_specific, text="Specific")
+        sf = tk.Frame(self.tab_specific, bg=WIN_BG)
         sf.pack(fill="x")
-        self.spin_spec_day = ttk.Spinbox(sf, from_=1, to=31, width=3)
+        self.spin_spec_day = ttk.Spinbox(sf, from_=1, to=31, width=3, font=FONT_MAIN)
         self.spin_spec_day.set(datetime.datetime.now().day)
-        self.spin_spec_day.pack(side="left", padx=2)
-        self.combo_spec_month = ttk.Combobox(sf, values=BULAN_INDONESIA, width=9, state="readonly")
+        self.spin_spec_day.pack(side="left", padx=1)
+        self.combo_spec_month = ttk.Combobox(sf, values=BULAN_INDONESIA, width=9, font=FONT_MAIN, state="readonly")
         self.combo_spec_month.current(datetime.datetime.now().month - 1)
-        self.combo_spec_month.pack(side="left", padx=2)
-        self.spin_spec_year = ttk.Spinbox(sf, from_=2025, to=2035, width=5)
+        self.combo_spec_month.pack(side="left", padx=1)
+        self.spin_spec_year = ttk.Spinbox(sf, from_=2025, to=2035, width=5, font=FONT_MAIN)
         self.spin_spec_year.set(datetime.datetime.now().year)
-        self.spin_spec_year.pack(side="left", padx=2)
+        self.spin_spec_year.pack(side="left", padx=1)
 
-        # TAB 5: Interval
-        self.tab_interval = tk.Frame(self.notebook, bg=CLR_CARD, padx=8, pady=6)
-        self.notebook.add(self.tab_interval, text="Interval Rutin")
-        inf = tk.Frame(self.tab_interval, bg=CLR_CARD)
+        # Tab 5: Interval
+        self.tab_interval = tk.Frame(self.notebook, bg=WIN_BG, padx=4, pady=4)
+        self.notebook.add(self.tab_interval, text="Interval")
+        inf = tk.Frame(self.tab_interval, bg=WIN_BG)
         inf.pack(fill="x")
-        tk.Label(inf, text="Ulangi setiap:", font=("Arial", 8), fg=CLR_TEXT, bg=CLR_CARD).pack(side="left")
-        self.spin_interval = ttk.Spinbox(inf, from_=10, to=2880, width=5)
+        tk.Label(inf, text="Ulangi tiap:", font=FONT_MAIN, bg=WIN_BG).pack(side="left")
+        self.spin_interval = ttk.Spinbox(inf, from_=5, to=2880, width=5, font=FONT_MAIN)
         self.spin_interval.set(360)
-        self.spin_interval.pack(side="left", padx=4)
-        tk.Label(inf, text="menit", font=("Arial", 8), fg=CLR_MUTED, bg=CLR_CARD).pack(side="left")
+        self.spin_interval.pack(side="left", padx=2)
+        tk.Label(inf, text="menit", font=FONT_MAIN, bg=WIN_BG).pack(side="left")
 
-        # Status Hitung Mundur Jadwal
-        self.lbl_sched_status = tk.Label(
-            card_sched,
-            text="Jadwal: Nonaktif",
-            font=("Arial", 8),
-            fg=CLR_MUTED,
-            bg=CLR_CARD
-        )
-        self.lbl_sched_status.pack(anchor="w", padx=10, pady=(3, 8))
+        # Label Hitung Mundur Sched
+        self.lbl_sched_status = tk.Label(grp_sched, text="Scheduler: Disabled", font=FONT_MAIN, fg="#444444", bg=WIN_BG)
+        self.lbl_sched_status.pack(anchor="w", padx=6, pady=(1, 3))
 
-        # 5. CARD LOG AKTIVITAS (RINGKAS)
-        card_log = tk.Frame(self.root, bg=CLR_CARD, bd=1, relief="solid", highlightbackground=CLR_BORDER)
-        card_log.pack(fill="both", expand=True, padx=12, pady=(0, 10))
+        # TERMINAL LOG MONITOR (Persis Kotak Hitam di Foto KCI_GATE)
+        grp_log = tk.Frame(col_right, bg=WIN_BG)
+        grp_log.pack(fill="both", expand=True)
 
-        log_head = tk.Frame(card_log, bg=CLR_CARD, padx=10, pady=(6, 2))
-        log_head.pack(fill="x")
-        tk.Label(log_head, text="LOG AKTIVITAS", font=("Arial", 8, "bold"), fg=CLR_MUTED, bg=CLR_CARD).pack(side="left")
-        tk.Button(log_head, text="Bersihkan", font=("Arial", 7), fg=CLR_MUTED, bd=0, bg=CLR_CARD, cursor="hand2", command=self.clear_log).pack(side="right")
+        self.txt_log = tk.Text(grp_log, bg=TERM_BG, fg=TERM_FG, font=FONT_TERM, relief="solid", bd=1, wrap="none")
+        self.txt_log.pack(fill="both", expand=True)
 
-        self.txt_log = tk.Text(card_log, height=4, font=("Courier", 8), bg=CLR_DARK, fg="#38bdf8", relief="flat", wrap="word")
-        self.txt_log.pack(fill="both", expand=True, padx=8, pady=(0, 6))
+        # Tombol Bawah (Persis 'Clear Log' di Foto KCI_GATE)
+        b_bar = tk.Frame(col_right, bg=WIN_BG, pady=2)
+        b_bar.pack(fill="x")
+        
+        self.lbl_clock_time = tk.Label(b_bar, text="00:00:00 WIB", font=FONT_MAIN, bg=WIN_BG)
+        self.lbl_clock_time.pack(side="left")
+
+        self.lbl_counter = tk.Label(b_bar, text="Count: 0x", font=FONT_MAIN, bg=WIN_BG)
+        self.lbl_counter.pack(side="left", padx=8)
+
+        btn_clear = tk.Button(b_bar, text="Clear Log", font=FONT_MAIN, bg=WIN_BTN, relief="raised", bd=2, padx=8, command=self.clear_log)
+        btn_clear.pack(side="right")
 
     def apply_config_to_ui(self):
         self.baud_combobox.set(str(self.config.get("baud_rate", 9600)))
@@ -391,11 +389,11 @@ class SimplifiedStationGateRestarterApp:
 
         raw_target = self.config.get("sched_target", "ALL")
         if "1" in raw_target:
-            self.combo_sched_target.set("Scanner 1 Saja")
+            self.combo_sched_target.set("Scanner 1")
         elif "2" in raw_target:
-            self.combo_sched_target.set("Scanner 2 Saja")
+            self.combo_sched_target.set("Scanner 2")
         else:
-            self.combo_sched_target.set("Semua Scanner (ALL)")
+            self.combo_sched_target.set("ALL")
 
         try:
             self.notebook.select(int(self.config.get("active_tab", 0)))
@@ -421,36 +419,36 @@ class SimplifiedStationGateRestarterApp:
         self.spin_spec_day.set(str(self.config.get("sched_specific_day", 26)))
         self.spin_interval.set(str(self.config.get("sched_interval_minutes", 360)))
 
+        self.lbl_tbl_stn.config(text=str(self.config.get("station_id", "JAK")))
+        self.lbl_tbl_gate.config(text=str(self.config.get("gate_id", "101")))
+
     # ==========================================
     # LOGGING
     # ==========================================
     def log(self, message):
-        ts = time.strftime("%H:%M:%S")
-        ts_full = time.strftime("%Y-%m-%d %H:%M:%S")
-        line = f"[{ts}] {message}"
+        # Format Timestamp persis foto: 2026-11-25 19:20:00.123 => ...
+        now = datetime.datetime.now()
+        ts = now.strftime("%Y-%m-%d %H:%M:%S") + f".{int(now.microsecond / 1000):03d}"
+        line = f"{ts} => {message}"
 
         def _ui():
-            self.txt_log.config(state="normal")
             self.txt_log.insert("end", line + "\n")
             self.txt_log.see("end")
-            self.txt_log.config(state="disabled")
         self.root.after(0, _ui)
 
         try:
             with open(LOG_FILE, "a", encoding="utf-8") as f:
-                f.write(f"[{ts_full}] {message}\n")
+                f.write(line + "\n")
         except Exception:
             pass
 
     def clear_log(self):
-        self.txt_log.config(state="normal")
         self.txt_log.delete("1.0", "end")
-        self.txt_log.config(state="disabled")
 
     # ==========================================
-    # EPC CLOCK
+    # CLOCK
     # ==========================================
-    def start_epc_clock_timer(self):
+    def start_clock_timer(self):
         def _tick():
             now = datetime.datetime.now()
             time_str = now.strftime("%H:%M:%S WIB")
@@ -534,7 +532,7 @@ class SimplifiedStationGateRestarterApp:
     def on_usb_change(self, ports):
         self.refresh_ports(auto_select=False)
         devices = [p[0] for p in ports]
-        self.log(f"USB: {len(devices)} port terdeteksi.")
+        self.log(f"USB Ports Changed: {len(devices)} available")
 
         if not (self.ser and self.ser.is_open) and self.var_autoconnect.get():
             arduino_ports = [d for d in devices if any(k in d.lower() for k in ["usbmodem", "usbserial", "com"])]
@@ -547,7 +545,7 @@ class SimplifiedStationGateRestarterApp:
                 self.connect(silent=True)
 
     def on_cable_disconnected(self):
-        self.log("Kabel USB terputus!")
+        self.log("USB Cable Disconnected!")
         self.disconnect()
 
     # ==========================================
@@ -563,15 +561,16 @@ class SimplifiedStationGateRestarterApp:
         port = self.get_selected_device_port()
         if not port:
             if not silent:
-                messagebox.showwarning("Peringatan", "Pilih port USB terlebih dahulu.")
+                messagebox.showwarning("Warning", "Pilih Port USB terlebih dahulu.")
             return False
 
         if port == SIMULATION_PORT:
             self.is_simulation = True
-            self.btn_connect.config(text="Putuskan", bg=CLR_RED)
-            self.lbl_usb_status_top.config(text="● Terhubung (Simulasi Virtual)", fg=CLR_PRIMARY)
+            self.btn_connect.config(text="Disconnect")
+            self.lbl_stat_port.config(text="Connected [SIMULATION]", bg=STATUS_GREEN)
+            self.lbl_tbl_port.config(text="SIM")
             self.port_combobox.config(state="disabled")
-            self.log("[Simulasi] Mode Virtual Arduino Mega aktif.")
+            self.log("Connected to Virtual Arduino Mega 2560 Simulator.")
             self.save_config()
             return True
 
@@ -580,17 +579,18 @@ class SimplifiedStationGateRestarterApp:
             self.ser = serial.Serial(port, baud, timeout=1)
             time.sleep(2)
             self.is_simulation = False
-            self.btn_connect.config(text="Putuskan", bg=CLR_RED)
-            self.lbl_usb_status_top.config(text=f"● Terhubung ({port})", fg=CLR_GREEN)
+            self.btn_connect.config(text="Disconnect")
+            self.lbl_stat_port.config(text=f"Connected [{port} @ {baud}]", bg=STATUS_GREEN)
+            self.lbl_tbl_port.config(text=port)
             self.port_combobox.config(state="disabled")
             self.save_config()
-            self.log(f"Terhubung ke Arduino Mega di {port}.")
+            self.log(f"Connected to Arduino Mega at {port} successfully.")
             threading.Thread(target=self.serial_reader_worker, daemon=True).start()
             self.send_serial_command("STATUS")
             return True
         except Exception as e:
             if not silent:
-                messagebox.showerror("Error", f"Gagal membuka {port}:\n{e}")
+                messagebox.showerror("Error", f"Failed to open {port}:\n{e}")
             self.disconnect()
             return False
 
@@ -603,10 +603,11 @@ class SimplifiedStationGateRestarterApp:
                 pass
         self.ser = None
 
-        self.btn_connect.config(text="Hubungkan", bg=CLR_GREEN)
-        self.lbl_usb_status_top.config(text="● Port USB Terputus", fg=CLR_RED)
+        self.btn_connect.config(text="Connect")
+        self.lbl_stat_port.config(text="Disconnected / Socket Error", bg=STATUS_RED)
+        self.lbl_tbl_port.config(text="NONE")
         self.port_combobox.config(state="readonly")
-        self.log("Koneksi USB ditutup.")
+        self.log("USB Connection Closed.")
 
     def serial_reader_worker(self):
         while self.is_running and self.ser and self.ser.is_open:
@@ -647,32 +648,33 @@ class SimplifiedStationGateRestarterApp:
 
     def update_channel_badge(self, channel, state):
         self.relay_states[channel] = state
-        lbl = self.lbl_status_ch1 if channel == 1 else self.lbl_status_ch2
+        lbl = self.lbl_stat_sc1 if channel == 1 else self.lbl_stat_sc2
+        pin = "D7" if channel == 1 else "D8"
 
         if state == "ON":
-            lbl.config(text="🟢 Normal (Power ON)", fg=CLR_GREEN)
+            lbl.config(text=f"Connected [{pin} Normal]", bg=STATUS_GREEN)
         elif state == "RESTARTING":
-            lbl.config(text="🟡 Sedang Restart (4s)...", fg=CLR_AMBER)
+            lbl.config(text=f"Restarting [{pin} Cut Power]", bg=STATUS_AMBER)
         elif state == "OFF":
-            lbl.config(text="🔴 Daya Mati (OFF)", fg=CLR_RED)
+            lbl.config(text=f"Power OFF [{pin} Cut Total]", bg=STATUS_RED)
 
     def send_serial_command(self, cmd):
         if self.is_simulation:
-            self.log(f"[Simulasi] -> {cmd}")
+            self.log(f"Send Serial => {cmd}")
             self.simulate_hardware(cmd)
             return True
 
         if not (self.ser and self.ser.is_open):
-            self.log("Perintah dibatalkan: Port USB belum terhubung.")
+            self.log("Command Aborted: USB Disconnected.")
             return False
 
         try:
             self.ser.write((cmd + "\n").encode('utf-8'))
             self.ser.flush()
-            self.log(f"[Kirim] -> {cmd}")
+            self.log(f"Send Serial => {cmd}")
             return True
         except Exception as e:
-            self.log(f"Error kirim: {e}")
+            self.log(f"Error Send: {e}")
             return False
 
     def simulate_hardware(self, cmd):
@@ -684,21 +686,21 @@ class SimplifiedStationGateRestarterApp:
             threading.Timer(dur + 2.0, lambda: (
                 self.update_channel_badge(1, "ON"),
                 self.update_channel_badge(2, "ON"),
-                self.log("[Simulasi] Kedua scanner normal kembali.")
+                self.log("STATUS:STAGGERED_COMPLETE:ALL_ON => Both Scanners Ready.")
             )).start()
 
         elif cmd.startswith("RESTART:1"):
             self.update_channel_badge(1, "RESTARTING")
             threading.Timer(dur, lambda: (
                 self.update_channel_badge(1, "ON"),
-                self.log("[Simulasi] Scanner 1 normal kembali.")
+                self.log("STATUS:RESTART_COMPLETE:CH1 => Scanner 1 Ready.")
             )).start()
 
         elif cmd.startswith("RESTART:2"):
             self.update_channel_badge(2, "RESTARTING")
             threading.Timer(dur, lambda: (
                 self.update_channel_badge(2, "ON"),
-                self.log("[Simulasi] Scanner 2 normal kembali.")
+                self.log("STATUS:RESTART_COMPLETE:CH2 => Scanner 2 Ready.")
             )).start()
 
         elif cmd == "POWER:1:OFF":
@@ -711,21 +713,21 @@ class SimplifiedStationGateRestarterApp:
             self.update_channel_badge(2, "ON")
 
     # ==========================================
-    # AKSI
+    # AKSI RESTART
     # ==========================================
     def check_ready(self):
         if self.is_simulation or (self.ser and self.ser.is_open):
             return True
         if self.connect(silent=True):
             return True
-        messagebox.showinfo("Info", "Silakan klik tombol 'Hubungkan' terlebih dahulu.")
+        messagebox.showinfo("KCI Gate", "Harap klik tombol 'Connect' terlebih dahulu.")
         return False
 
     def manual_restart(self, channel):
         if not self.check_ready():
             return
         ch_name = f"Scanner {channel}" if channel != "ALL" else "Kedua Scanner"
-        if messagebox.askyesno("Konfirmasi", f"Restart {ch_name} sekarang?"):
+        if messagebox.askyesno("KCI Gate Restarter", f"Eksekusi reboot daya pada {ch_name}?"):
             self.trigger_restart(channel=channel, source="MANUAL")
 
     def trigger_restart(self, channel="ALL", source="MANUAL"):
@@ -738,14 +740,14 @@ class SimplifiedStationGateRestarterApp:
             self.btn_restart_all.config(state="disabled")
 
             self.restart_count += 1
-            self.lbl_counter.config(text=f"Total Restart: {self.restart_count}x")
+            self.lbl_counter.config(text=f"Count: {self.restart_count}x")
 
             if channel == "ALL":
-                self.log(f"[{source}] Restart Semua Scanner (Staggered)...")
+                self.log(f"[{source}] Triggered Staggered Reboot (Duration: {dur_sec}s)...")
                 self.send_serial_command(f"RESTART:ALL:{dur_ms}")
                 time.sleep(dur_sec + 2.5)
             else:
-                self.log(f"[{source}] Restart Scanner {channel}...")
+                self.log(f"[{source}] Triggered Scanner {channel} Reboot (Duration: {dur_sec}s)...")
                 self.send_serial_command(f"RESTART:{channel}:{dur_ms}")
                 time.sleep(dur_sec + 0.8)
 
@@ -756,28 +758,6 @@ class SimplifiedStationGateRestarterApp:
 
         threading.Thread(target=_exec, daemon=True).start()
 
-    def open_power_menu(self):
-        # Dialog ringkas jika teknisi butuh matikan total arus
-        win = tk.Toplevel(self.root)
-        win.title("Kontrol Daya Manual")
-        win.geometry("300x160")
-        win.configure(bg=CLR_CARD)
-        win.transient(self.root)
-
-        tk.Label(win, text="Matikan / Nyalakan Daya Scanner:", font=("Arial", 9, "bold"), bg=CLR_CARD).pack(pady=8)
-        
-        f1 = tk.Frame(win, bg=CLR_CARD)
-        f1.pack(fill="x", padx=12, pady=4)
-        tk.Label(f1, text="Scanner 1:", font=("Arial", 9), bg=CLR_CARD).pack(side="left")
-        tk.Button(f1, text="Matikan (OFF)", bg=CLR_RED, fg="white", font=("Arial", 8), command=lambda: self.send_serial_command("POWER:1:OFF")).pack(side="right", padx=2)
-        tk.Button(f1, text="Nyalakan (ON)", bg=CLR_GREEN, fg="white", font=("Arial", 8), command=lambda: self.send_serial_command("POWER:1:ON")).pack(side="right", padx=2)
-
-        f2 = tk.Frame(win, bg=CLR_CARD)
-        f2.pack(fill="x", padx=12, pady=4)
-        tk.Label(f2, text="Scanner 2:", font=("Arial", 9), bg=CLR_CARD).pack(side="left")
-        tk.Button(f2, text="Matikan (OFF)", bg=CLR_RED, fg="white", font=("Arial", 8), command=lambda: self.send_serial_command("POWER:2:OFF")).pack(side="right", padx=2)
-        tk.Button(f2, text="Nyalakan (ON)", bg=CLR_GREEN, fg="white", font=("Arial", 8), command=lambda: self.send_serial_command("POWER:2:ON")).pack(side="right", padx=2)
-
     # ==========================================
     # SCHEDULER ENGINE
     # ==========================================
@@ -786,10 +766,10 @@ class SimplifiedStationGateRestarterApp:
         if self.var_sched_enabled.get():
             if self.notebook.index(self.notebook.select()) == 4:
                 self.last_interval_trigger = time.time()
-            self.log("Jadwal otomatis diaktifkan.")
+            self.log("Scheduler Engine ENABLED.")
         else:
-            self.log("Jadwal otomatis dinonaktifkan.")
-            self.lbl_sched_status.config(text="Jadwal: Nonaktif", fg=CLR_MUTED)
+            self.log("Scheduler Engine DISABLED.")
+            self.lbl_sched_status.config(text="Scheduler: Disabled")
 
     def get_target_channel_param(self):
         raw = self.combo_sched_target.get()
@@ -815,11 +795,11 @@ class SimplifiedStationGateRestarterApp:
                         tab_idx = self.notebook.index(self.notebook.select())
                         target_ch = self.get_target_channel_param()
 
-                        if tab_idx == 0: # Setiap Hari
+                        if tab_idx == 0: # Daily
                             th, tm = self.get_target_hour_min()
                             if now.hour == th and now.minute == tm and now.minute != last_fired_minute:
                                 last_fired_minute = now.minute
-                                self.log(f"[Jadwal] Jam {th:02d}:{tm:02d} tercapai. Restart target: {target_ch}")
+                                self.log(f"[Scheduler] Daily target reached ({th:02d}:{tm:02d} WIB). Triggering {target_ch}")
                                 self.trigger_restart(channel=target_ch, source="AUTO-DAILY")
 
                             target_dt = now.replace(hour=th, minute=tm, second=0, microsecond=0)
@@ -829,8 +809,7 @@ class SimplifiedStationGateRestarterApp:
                             h, rem = divmod(int(diff.total_seconds()), 3600)
                             m, s = divmod(rem, 60)
                             self.root.after(0, lambda: self.lbl_sched_status.config(
-                                text=f"Jadwal Harian: Pukul {th:02d}:{tm:02d} WIB (dlm ~{h}j {m}m {s}d)",
-                                fg=CLR_PRIMARY
+                                text=f"Daily: {th:02d}:{tm:02d} WIB (in ~{h}h {m}m {s}s)"
                             ))
 
                         elif tab_idx == 4: # Interval
@@ -840,15 +819,14 @@ class SimplifiedStationGateRestarterApp:
 
                             if elapsed >= intv_sec:
                                 self.last_interval_trigger = time.time()
-                                self.log(f"[Jadwal] Interval {intv_min} menit tercapai. Restart...")
+                                self.log(f"[Scheduler] Interval {intv_min}m reached. Rebooting...")
                                 self.trigger_restart(channel=target_ch, source="AUTO-INTERVAL")
 
                             rem = max(0, int(intv_sec - elapsed))
                             m, s = divmod(rem, 60)
                             h, m = divmod(m, 60)
                             self.root.after(0, lambda: self.lbl_sched_status.config(
-                                text=f"Jadwal Interval ({intv_min}m): Hitung mundur {h:02d}:{m:02d}:{s:02d}",
-                                fg=CLR_PRIMARY
+                                text=f"Interval ({intv_min}m): Countdown {h:02d}:{m:02d}:{s:02d}"
                             ))
 
                     time.sleep(1)
@@ -865,6 +843,6 @@ class SimplifiedStationGateRestarterApp:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = SimplifiedStationGateRestarterApp(root)
+    app = KciGateRestarterApp(root)
     root.protocol("WM_DELETE_WINDOW", app.on_closing)
     root.mainloop()
