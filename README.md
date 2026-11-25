@@ -1,90 +1,70 @@
-# Scanner Hardware Restarter (Arduino Mega 2560 & Windows App)
+# 🚇 Railway Station Gate QR Scanner Hardware Restarter (Multi-Channel)
 
-Sistem hardware restarter dan power controller untuk perangkat scanner (adaptor 5V DC) menggunakan **Arduino Mega 2560** dan **Relay 1-Channel**, dikendalikan melalui aplikasi desktop Windows dengan dukungan **Manual Restart** dan **Scheduler Otomatis**.
+Sistem pengendali dan hardware restarter untuk **Scanner QR Turnstile Gate Stasiun Kereta** menggunakan **Arduino Mega 2560** dan **Relay Multi-Channel (2-CH / 4-CH)** berbasis logika **Normally Closed (NC) Fail-Safe** dan **Hardware Watchdog Timer (WDT)**.
+
+Dikendalikan melalui aplikasi desktop Windows (kompatibel penuh dengan **Windows 7 32-bit/64-bit, POSReady 7, Windows 10, Windows 11**) dengan dukungan **Manual Restart Per-Channel**, **Staggered Restart Serentak**, dan **Advanced Scheduler Otomatis**.
 
 ---
 
-## 🔌 1. Skema Pengkabelan (Wiring Diagram)
+## 📑 Dokumen & Panduan Penting
+* 📘 **[PANDUAN_TEKNISI_GATE_STASIUN.md](PANDUAN_TEKNISI_GATE_STASIUN.md)**: SOP Penggantian Unit di Lapangan, Diagram Kelistrikan, dan Prosedur Darurat (Emergency Bypass) bagi teknisi gate stasiun.
+* 🌐 **[simulator_gate.html](simulator_gate.html)**: Simulasi visual interaktif turnstile gate, tapping tiket penumpang, relay click, dan serial monitor log (bisa dibuka langsung di browser Safari/Chrome pada MacBook tanpa perlu hardware fisik).
+* 🔌 **[drivers/README.md](drivers/README.md)**: Panduan instalasi driver USB CH340 dan Arduino Official untuk PC EPC Host.
 
-### A. Arduino Mega 2560 ke Modul Relay (5V):
+---
+
+## 🔌 1. Skema Pengkabelan (Wiring Diagram 2-Channel Fail-Safe)
+
+### A. Arduino Mega 2560 ke Modul Relay 2-Channel (5V Active-LOW):
 | Pin Modul Relay | Pin Arduino Mega 2560 | Keterangan |
 | :--- | :--- | :--- |
-| **VCC** | **5V** | Sumber daya modul relay |
-| **GND** | **GND** | Ground bersama |
-| **IN** | **Pin D7** | Sinyal kontrol pemicu relay |
+| **VCC** | **Pin 5V** | Sumber daya modul relay |
+| **GND** | **Pin GND** | Ground bersama |
+| **IN1** | **Pin D7** | Kontrol Scanner 1 (Gate In / Masuk) |
+| **IN2** | **Pin D8** | Kontrol Scanner 2 (Gate Out / Keluar) |
+| *(IN3)* | *Pin D9* | *Cadangan / Scanner 3 (Jika pakai 4-CH)* |
+| *(IN4)* | *Pin D10* | *Cadangan / Scanner 4 (Jika pakai 4-CH)* |
 
 ### B. Modul Relay ke Jalur Daya Adaptor Scanner (5V DC):
-Potong kabel positif (+) dari adaptor 5V scanner, lalu hubungkan ke terminal relay:
+Gunakan **Jack DC Barrel 5.5 x 2.1 mm (Tipe Baut)** agar kabel adaptor bawaan scanner tidak dipotong:
 - **Kabel Positif (+) dari Adaptor 5V** $\rightarrow$ Terminal **COM** (Common) pada Relay.
 - **Kabel Positif (+) menuju Jack Scanner** $\rightarrow$ Terminal **NC** (Normally Closed) pada Relay.
-- **Kabel Negatif / Ground (-)** adaptor tetap tersambung langsung ke scanner (tidak dipotong).
+- **Kabel Negatif / Ground (-)** adaptor tetap tersambung langsung ke scanner (tidak melalui relay).
 
-> **Mengapa menggunakan NC (Normally Closed)?**
-> Saat Arduino mati atau idle, sirkuit tetap tertutup sehingga scanner menyala normal seperti biasa tanpa menguras daya koil relay. Saat perintah restart dikirim, Arduino akan memicu relay selama 4 detik sehingga kontak terbuka (arus terputus sesaat), lalu menutup kembali (arus mengalir lagi, scanner restart).
+> **Mengapa wajib NC (Normally Closed)?**
+> Saat Arduino mati, kabel USB tercabut, atau terjadi lonjakan listrik, kontak NC tetap tertutup sehingga scanner QR **tetap menyala normal** dan penumpang tetap bisa tap tiket. Relay hanya bekerja (berenergi) beberapa detik saat perintah restart dikirim dari aplikasi host EPC.
 
 ---
 
 ## 🛠️ 2. Cara Flash Firmware ke Arduino Mega 2560 (dari Mac)
 
-1. Buka aplikasi **Arduino IDE** di MacBook Anda.
-2. Buka file:
-   `scanner_restarter/firmware/scanner_controller.ino`
+1. Buka aplikasi **Arduino IDE** di MacBook.
+2. Buka file: `firmware/scanner_controller.ino`.
 3. Pada menu Arduino IDE:
-   - **Tools** $\rightarrow$ **Board** $\rightarrow$ pilih **Arduino Mega or Mega 2560**.
-   - **Tools** $\rightarrow$ **Processor** $\rightarrow$ pilih **ATmega2560 (Mega 2560)**.
-   - **Tools** $\rightarrow$ **Port** $\rightarrow$ pilih port USB Arduino (misal `/dev/cu.usbmodem...` atau `/dev/cu.usbserial...`).
+   - **Tools** $\rightarrow$ **Board** $\rightarrow$ **Arduino Mega or Mega 2560**.
+   - **Tools** $\rightarrow$ **Processor** $\rightarrow$ **ATmega2560 (Mega 2560)**.
+   - **Tools** $\rightarrow$ **Port** $\rightarrow$ pilih port USB Arduino.
 4. Klik tombol **Upload** (tanda panah ke kanan).
 
 ---
 
-## 💻 3. Menjalankan & Mengetes Aplikasi di MacBook
+## 💻 3. Menjalankan & Mengetes Simulasi di MacBook
 
-Aplikasi dibangun menggunakan Python Tkinter (cross-platform), sehingga bisa langsung dites di Mac:
+### Opsi A: Simulasi Visual di Browser (Paling Mudah)
+Buka file **`simulator_gate.html`** di browser Chrome atau Safari di MacBook Anda. Anda dapat langsung mengklik tombol restart, melihat lampu indikator, mendengar bunyi klik relay, dan melihat log komunikasi serial secara interaktif!
 
+### Opsi B: Menjalankan Aplikasi Python di Mac
 ```bash
-cd scanner_restarter/desktop_app
+cd desktop_app
 pip install -r requirements.txt
 python3 app.py
 ```
+Pada dropdown **Port USB**, pilih:
+`[SIMULASI / DEMO VIRTUAL GATE STASIUN]`
+Aplikasi akan mensimulasikan respons serial Arduino Mega secara langsung tanpa memerlukan perangkat fisik.
 
 ---
 
-## 📦 4. Membuat File Standalone `.exe` untuk Windows 7, 10, dan 11
+## 📦 4. Build Otomatis Windows 32-bit (x86) via GitHub Actions
 
-### PENTING untuk Kompatibilitas Windows 7:
-- Gunakan **Python 3.8.10 (32-bit atau 64-bit)** saat mengompilasi `.exe`. Python 3.8 adalah versi Python resmi terakhir yang mendukung Windows 7 sekaligus tetap berjalan lancar di Windows 10 & 11.
-- Jalankan file `build_windows_exe.bat` di komputer Windows atau jalankan perintah:
-  ```cmd
-  pip install pyserial pyinstaller
-  pyinstaller --onefile --noconsole --name "ScannerRestarter" app.py
-  ```
-- File siap pakai akan berada di folder: `dist\ScannerRestarter.exe`.
-
----
-
-## 📋 5. Fitur Aplikasi Desktop
-
-1. **Auto-Detect Port Fisik USB (Hotplug Detect)**: Mendeteksi port USB Arduino Mega secara otomatis saat dicolok/dicabut di Windows maupun Mac.
-2. **Kontrol Daya Manual**:
-   - **⚡ RESTART PERANGKAT**: Memutus daya selama durasi yang ditentukan (default 4 detik) lalu menghidupkannya kembali.
-   - **🔴 Matikan Arus (Power OFF)**: Mematikan daya terus-menerus.
-   - **🟢 Alirkan Arus (Power ON)**: Mengalirkan kembali arus secara normal.
-3. **Jam Real-Time EPC Host**: Menampilkan jam digital sistem host PC secara langsung.
-4. **Penjadwalan Fleksibel Lengkap (5 Tab)**:
-   - **Tab 1: 📅 Setiap Hari (Daily)**: Restart otomatis setiap jam & menit tertentu (misal: 02:00 WIB).
-   - **Tab 2: 🗓️ Hari Tertentu (Senin-Minggu)**: Pilih hari-hari kerja atau hari tertentu saja.
-   - **Tab 3: 📆 Tanggal Tiap Bulan**: Restart rutin setiap tanggal X tiap bulan.
-   - **Tab 4: 🎯 Tanggal Kalender Spesifik**: Jadwal 1x jalan pada tanggal kalender tertentu di masa depan.
-   - **Tab 5: ⏱️ Interval Rutin**: Restart otomatis setiap X menit (contoh: tiap 360 menit / 6 jam).
-5. **Auto-Save Settings & Logging**: Menyimpan preferensi port, tab aktif, dan pengaturan ke `config.json` serta mencatat semua aktivitas ke `scanner_activity.log`.
-6. **Automated CI/CD Build**: Otomatis menghasilkan `ScannerRestarter.exe` via GitHub Actions setiap kali push ke repository.
-
----
-
-## 💾 6. Driver USB Arduino untuk Windows / PC EPC
-
-Folder `drivers/` sudah disertakan langsung di dalam repository ini agar PC EPC dapat langsung mengenali Arduino:
-- **`drivers/CH340_Windows/CH341SER.EXE`**: Driver untuk Arduino Mega kloning (chip CH340 / CH341). Wajib diinstall di Windows 7, 8, 10, maupun 11.
-- **`drivers/Arduino_Official/`**: Berisi installer resmi Arduino (`dpinst-amd64.exe` / `dpinst-x86.exe` dan `arduino.inf`) untuk chip ATmega16U2 (Arduino Original), terutama jika PC EPC menggunakan Windows 7 / 8 / POSReady 7.
-
-> Panduan lengkap dan langkah instalasi dapat dibaca di [drivers/README.md](drivers/README.md).
+Aplikasi ini otomatis di-build menjadi file `.exe` 32-bit standalone menggunakan **Python 3.8.10 (x86)** via GitHub Actions setiap kali ada push ke repository. File `.exe` ini kompatibel dengan **Windows 7 32-bit / POSReady 7 EPC** maupun Windows 10/11 64-bit.

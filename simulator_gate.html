@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simulasi Virtual Hardware Restarter - Gate QR Scanner Stasiun Kereta</title>
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --bg-card: #1e293b;
+      --bg-card-light: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-blue: #38bdf8;
+      --accent-green: #22c55e;
+      --accent-red: #ef4444;
+      --accent-amber: #f59e0b;
+      --accent-purple: #a855f7;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background: var(--bg-dark);
+      color: var(--text-main);
+      padding: 20px;
+      line-height: 1.5;
+    }
+    .header {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 20px;
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    }
+    .header h1 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .badge-live {
+      background: rgba(34, 197, 94, 0.2);
+      color: var(--accent-green);
+      border: 1px solid var(--accent-green);
+      padding: 4px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+    .grid-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+    @media (max-width: 900px) {
+      .grid-container { grid-template-columns: 1fr; }
+    }
+    .card {
+      background: var(--bg-card);
+      border: 1px solid #334155;
+      border-radius: 12px;
+      padding: 18px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .card-title {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 14px;
+      color: #f1f5f9;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid #334155;
+      padding-bottom: 8px;
+    }
+    /* TURNSTILE GATE VISUAL */
+    .turnstiles-wrap {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+    .gate-box {
+      background: #0b1120;
+      border: 2px solid #334155;
+      border-radius: 10px;
+      padding: 14px;
+      text-align: center;
+      position: relative;
+      transition: all 0.3s;
+    }
+    .gate-box.active {
+      border-color: var(--accent-green);
+      box-shadow: 0 0 15px rgba(34, 197, 94, 0.2);
+    }
+    .gate-box.restarting {
+      border-color: var(--accent-amber);
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.3);
+    }
+    .gate-box.dead {
+      border-color: var(--accent-red);
+      opacity: 0.7;
+    }
+    .gate-icon { font-size: 32px; margin-bottom: 6px; }
+    .gate-name { font-weight: 700; font-size: 13px; color: #e2e8f0; }
+    .scanner-target {
+      margin-top: 10px;
+      background: #1e293b;
+      border: 1px dashed #475569;
+      border-radius: 6px;
+      padding: 8px;
+      position: relative;
+      overflow: hidden;
+    }
+    .laser-line {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 2px;
+      background: #22c55e;
+      box-shadow: 0 0 8px #22c55e;
+      animation: scan 1.5s infinite linear;
+    }
+    @keyframes scan {
+      0% { top: 0%; opacity: 0; }
+      50% { opacity: 1; }
+      100% { top: 90%; opacity: 0; }
+    }
+    .scanner-target.off .laser-line { display: none; }
+    .power-led {
+      display: inline-block;
+      width: 10px; height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+    .power-led.on { background: #22c55e; box-shadow: 0 0 8px #22c55e; }
+    .power-led.off { background: #ef4444; box-shadow: 0 0 8px #ef4444; }
+    .power-led.restarting { background: #f59e0b; box-shadow: 0 0 8px #f59e0b; animation: blink 0.5s infinite; }
+    @keyframes blink { 50% { opacity: 0.2; } }
+
+    /* RELAY MODULE VISUAL */
+    .relay-module {
+      background: #1e293b;
+      border: 2px solid #2563eb;
+      border-radius: 10px;
+      padding: 14px;
+      margin-bottom: 14px;
+    }
+    .relay-channels {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    .relay-channel-card {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 10px;
+      text-align: left;
+    }
+    .relay-cube {
+      width: 48px;
+      height: 38px;
+      background: #2563eb;
+      color: white;
+      font-size: 10px;
+      font-weight: bold;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 4px;
+      margin: 8px 0;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.4);
+      transition: all 0.2s;
+    }
+    .relay-cube.tripped {
+      background: #dc2626;
+      box-shadow: 0 0 12px #ef4444;
+      transform: scale(0.96);
+    }
+    .nc-status {
+      font-size: 11px;
+      font-weight: bold;
+      color: #94a3b8;
+    }
+    /* BUTTONS */
+    .btn {
+      padding: 10px 14px;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      border: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s;
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn-blue { background: #2563eb; color: #fff; }
+    .btn-blue:hover { background: #1d4ed8; }
+    .btn-green { background: #16a34a; color: #fff; }
+    .btn-green:hover { background: #15803d; }
+    .btn-red { background: #dc2626; color: #fff; }
+    .btn-red:hover { background: #b91c1c; }
+    .btn-amber { background: #d97706; color: #fff; }
+    .btn-amber:hover { background: #b45309; }
+    .btn-purple { background: #9333ea; color: #fff; }
+    .btn-purple:hover { background: #7e22ce; }
+    .btn-group { display: flex; gap: 8px; margin-top: 10px; }
+    .btn-full { width: 100%; margin-top: 8px; }
+
+    /* LOG CONSOLE */
+    .terminal-box {
+      background: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+      font-size: 11px;
+      color: #38bdf8;
+      height: 220px;
+      overflow-y: auto;
+      margin-top: 10px;
+    }
+    .terminal-line { margin-bottom: 4px; word-break: break-all; }
+    .terminal-line.success { color: #4ade80; }
+    .terminal-line.warn { color: #fbbf24; }
+    .terminal-line.error { color: #f87171; }
+  </style>
+</head>
+<body>
+
+  <div class="header">
+    <div>
+      <h1>⚡ SIMULATOR VIRTUAL GATE QR SCANNER STASIUN KERETA</h1>
+      <p style="color: var(--text-muted); font-size: 12px; margin-top: 4px;">
+        Simulasi Real-Time Arduino Mega 2560 & Relay 2-Channel (Wiring Fail-Safe Normally Closed)
+      </p>
+    </div>
+    <div class="badge-live">● SIMULASI AKTIF</div>
+  </div>
+
+  <div class="grid-container">
+
+    <!-- PANEL KIRI: VISUALISASI HARDWARE DI GATE STASIUN -->
+    <div class="card">
+      <div class="card-title">
+        <span>🚇 Turnstile Gate Stasiun (Scanner QR)</span>
+        <span id="gateClock" style="color: var(--accent-blue); font-size: 13px;">00:00:00 WIB</span>
+      </div>
+
+      <!-- 2 GATE TURNSTILES -->
+      <div class="turnstiles-wrap">
+        <!-- GATE IN -->
+        <div class="gate-box active" id="boxGate1">
+          <div class="gate-icon">🚪⬅️</div>
+          <div class="gate-name">GATE 1 (PENUMPANG MASUK / IN)</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Jalur Pin Arduino D7</div>
+          <div class="scanner-target" id="scanner1">
+            <div class="laser-line"></div>
+            <div style="font-size: 20px;">📱 QR TIKET</div>
+            <div style="font-size: 10px; color: var(--accent-green); font-weight: bold;" id="statusTxt1">🟢 STANDBY SCANNING</div>
+          </div>
+          <div style="margin-top: 8px; font-size: 11px;">
+            <span class="power-led on" id="led1"></span><span id="pwrLabel1">Arus Adaptor 5V Mengalir</span>
+          </div>
+          <button class="btn btn-blue btn-full" onclick="simulateScan(1)">📲 Tes Scan Tiket Penumpang</button>
+        </div>
+
+        <!-- GATE OUT -->
+        <div class="gate-box active" id="boxGate2">
+          <div class="gate-icon">🚪➡️</div>
+          <div class="gate-name">GATE 2 (PENUMPANG KELUAR / OUT)</div>
+          <div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">Jalur Pin Arduino D8</div>
+          <div class="scanner-target" id="scanner2">
+            <div class="laser-line"></div>
+            <div style="font-size: 20px;">📱 QR TIKET</div>
+            <div style="font-size: 10px; color: var(--accent-green); font-weight: bold;" id="statusTxt2">🟢 STANDBY SCANNING</div>
+          </div>
+          <div style="margin-top: 8px; font-size: 11px;">
+            <span class="power-led on" id="led2"></span><span id="pwrLabel2">Arus Adaptor 5V Mengalir</span>
+          </div>
+          <button class="btn btn-blue btn-full" onclick="simulateScan(2)">📲 Tes Scan Tiket Penumpang</button>
+        </div>
+      </div>
+
+      <!-- VISUAL RELAY MODULE 2-CHANNEL -->
+      <div class="relay-module">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <strong style="font-size: 12px; color: #93c5fd;">⚡ Modul Relay 2-Channel (Active-LOW)</strong>
+          <span style="font-size: 10px; color: #94a3b8;">Terminal Normally Closed (COM - NC)</span>
+        </div>
+        <div class="relay-channels">
+          <!-- Channel 1 -->
+          <div class="relay-channel-card">
+            <span style="font-size: 11px; font-weight: bold;">Channel 1 (Pin D7)</span>
+            <div class="relay-cube" id="relayCube1">RELAY 1<br>5V SONGLE</div>
+            <div class="nc-status" id="relayStatus1">Kontak: NC TERTUTUP (ON)</div>
+          </div>
+          <!-- Channel 2 -->
+          <div class="relay-channel-card">
+            <span style="font-size: 11px; font-weight: bold;">Channel 2 (Pin D8)</span>
+            <div class="relay-cube" id="relayCube2">RELAY 2<br>5V SONGLE</div>
+            <div class="nc-status" id="relayStatus2">Kontak: NC TERTUTUP (ON)</div>
+          </div>
+        </div>
+        <div style="font-size: 10px; color: #cbd5e1; margin-top: 8px; line-height: 1.4;">
+          💡 <strong>Prinsip Fail-Safe NC:</strong> Saat relay idle/mati (HIGH), kontak NC tertutup sehingga scanner QR selalu menyala normal. Relay hanya menyala (buka kontak) 4 detik saat diperintah restart.
+        </div>
+      </div>
+
+    </div>
+
+    <!-- PANEL KANAN: KONTROL PC EPC HOST & SERIAL MONITOR -->
+    <div class="card">
+      <div class="card-title">
+        <span>🖥️ Kontrol Host EPC Gate Stasiun</span>
+        <span style="font-size: 11px; color: #4ade80;">Arduino Mega (COM3 @ 9600)</span>
+      </div>
+
+      <!-- TOMBOL KONTROL RESTART -->
+      <div style="background: #0b1120; border: 1px solid #334155; border-radius: 8px; padding: 12px; margin-bottom: 12px;">
+        <div style="font-size: 11px; font-weight: bold; color: #94a3b8; margin-bottom: 8px;">KONTROL RESTART MANUAL PER-CHANNEL</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+          <button class="btn btn-blue" id="btnRest1" onclick="triggerRestart(1)">⚡ RESTART SCANNER 1</button>
+          <button class="btn btn-blue" id="btnRest2" onclick="triggerRestart(2)">⚡ RESTART SCANNER 2</button>
+        </div>
+
+        <button class="btn btn-purple btn-full" id="btnRestAll" onclick="triggerRestartAll()" style="font-size: 13px; padding: 12px;">
+          ⚡ RESTART KEDUA SCANNER (STAGGERED / BERGILIRAN DENGAN JEDA)
+        </button>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px;">
+          <div style="display: flex; gap: 4px;">
+            <button class="btn btn-red" style="flex:1; font-size: 10px;" onclick="powerCut(1, true)">🔴 Cut Ch1</button>
+            <button class="btn btn-green" style="flex:1; font-size: 10px;" onclick="powerCut(1, false)">🟢 On Ch1</button>
+          </div>
+          <div style="display: flex; gap: 4px;">
+            <button class="btn btn-red" style="flex:1; font-size: 10px;" onclick="powerCut(2, true)">🔴 Cut Ch2</button>
+            <button class="btn btn-green" style="flex:1; font-size: 10px;" onclick="powerCut(2, false)">🟢 On Ch2</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- SERIAL LOGS -->
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <span style="font-size: 11px; font-weight: bold; color: #94a3b8;">TERMINAL LOG SERIAL ARDUINO MEGA (9600 BAUD)</span>
+        <button class="btn btn-blue" style="padding: 2px 8px; font-size: 10px;" onclick="clearLogs()">Bersihkan</button>
+      </div>
+
+      <div class="terminal-box" id="termLog">
+        <div class="terminal-line success">[00:00:00] STATUS:READY:GATE_SCANNER_CONTROLLER_4CH</div>
+        <div class="terminal-line">[00:00:00] Watchdog Timer (WDT) Aktif: 8 Detik Auto-Reset</div>
+        <div class="terminal-line">[00:00:00] Channel 1 (Pin 7) & Channel 2 (Pin 8) Siap (NC Closed -> Power ON)</div>
+      </div>
+
+      <div style="margin-top: 10px; font-size: 11px; color: #94a3b8; background: #0b1120; padding: 8px; border-radius: 6px; border: 1px solid #1e293b;">
+        ⏱️ <strong>Scheduler Otomatis:</strong> Di lapangan, scheduler diset pada pukul <strong>02:00 WIB</strong> (saat jadwal stasiun tutup/kereta terakhir selesai) sehingga gerbang penumpang tetap 100% lancar di jam sibuk pagi & sore.
+      </div>
+
+    </div>
+
+  </div>
+
+  <script>
+    // Audio synthesizer untuk bunyi klik relay
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    function playRelayClick() {
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.05);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.05);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.05);
+      } catch (e) {}
+    }
+
+    // Jam Realtime
+    setInterval(() => {
+      const now = new Date();
+      const timeStr = now.toLocaleTimeString('id-ID') + ' WIB';
+      document.getElementById('gateClock').innerText = timeStr;
+    }, 1000);
+
+    function addLog(text, type = '') {
+      const box = document.getElementById('termLog');
+      const time = new Date().toLocaleTimeString('id-ID');
+      const div = document.createElement('div');
+      div.className = 'terminal-line ' + type;
+      div.innerText = `[${time}] ${text}`;
+      box.appendChild(div);
+      box.scrollTop = box.scrollHeight;
+    }
+
+    function clearLogs() {
+      document.getElementById('termLog').innerHTML = '';
+      addLog('Log dibersihkan.');
+    }
+
+    // Simulasi Scan QR
+    function simulateScan(ch) {
+      const isDead = document.getElementById(`boxGate${ch}`).classList.contains('dead') || 
+                     document.getElementById(`boxGate${ch}`).classList.contains('restarting');
+      if (isDead) {
+        addLog(`❌ [GATE ${ch}] Penumpang scan QR gagal! Scanner sedang MATI / RESTART!`, 'error');
+        alert(`Scanner ${ch} sedang mati / restart! Penumpang tidak bisa tap.`);
+      } else {
+        addLog(`✅ [GATE ${ch}] QR Penumpang terbaca sukses: TIKET_KAI_PASS_OK`, 'success');
+        const box = document.getElementById(`boxGate${ch}`);
+        box.style.borderColor = '#38bdf8';
+        setTimeout(() => { box.style.borderColor = '#22c55e'; }, 400);
+      }
+    }
+
+    // Eksekusi Restart Single Channel
+    function triggerRestart(ch) {
+      addLog(`Kirim -> RESTART:${ch}:4000`);
+      playRelayClick();
+
+      // Trip Relay
+      const cube = document.getElementById(`relayCube${ch}`);
+      const rStat = document.getElementById(`relayStatus${ch}`);
+      const gBox = document.getElementById(`boxGate${ch}`);
+      const scan = document.getElementById(`scanner${ch}`);
+      const led = document.getElementById(`led${ch}`);
+      const pLabel = document.getElementById(`pwrLabel${ch}`);
+      const sTxt = document.getElementById(`statusTxt${ch}`);
+
+      cube.classList.add('tripped');
+      rStat.innerText = 'Kontak: NC TERBUKA (Arus Terputus)';
+      rStat.style.color = '#ef4444';
+
+      gBox.className = 'gate-box restarting';
+      scan.classList.add('off');
+      led.className = 'power-led restarting';
+      pLabel.innerText = 'Power Scanner TERPUTUS (4 detik)...';
+      sTxt.innerText = '🟡 RESTARTING (4 DETIK)';
+      sTxt.style.color = '#f59e0b';
+
+      addLog(`STATUS:RESTARTING:CH=${ch}:DURATION=4000`, 'warn');
+
+      setTimeout(() => {
+        playRelayClick();
+        cube.classList.remove('tripped');
+        rStat.innerText = 'Kontak: NC TERTUTUP (ON)';
+        rStat.style.color = '#94a3b8';
+
+        gBox.className = 'gate-box active';
+        scan.classList.remove('off');
+        led.className = 'power-led on';
+        pLabel.innerText = 'Arus Adaptor 5V Mengalir';
+        sTxt.innerText = '🟢 STANDBY SCANNING';
+        sTxt.style.color = '#22c55e';
+
+        addLog(`STATUS:RESTART_COMPLETE:CH${ch}`, 'success');
+      }, 4000);
+    }
+
+    // Staggered Restart
+    function triggerRestartAll() {
+      addLog('Kirim -> RESTART:ALL:4000');
+      addLog('STATUS:STARTING_STAGGERED_RESTART:DURATION=4000', 'warn');
+
+      // Step 1: Scanner 1 Restart
+      triggerRestart(1);
+
+      // Step 2: Jeda 1.5 detik -> Scanner 2 Restart
+      setTimeout(() => {
+        addLog('STATUS:STAGGERED:CH2_CUT (Jeda 1.5s Tercapai)', 'warn');
+        triggerRestart(2);
+      }, 1500);
+
+      setTimeout(() => {
+        addLog('STATUS:STAGGERED_COMPLETE:ALL_ON (Kedua Gerbang Kembali Normal)', 'success');
+      }, 6000);
+    }
+
+    // Manual Cut Power
+    function powerCut(ch, cut) {
+      playRelayClick();
+      const cube = document.getElementById(`relayCube${ch}`);
+      const rStat = document.getElementById(`relayStatus${ch}`);
+      const gBox = document.getElementById(`boxGate${ch}`);
+      const scan = document.getElementById(`scanner${ch}`);
+      const led = document.getElementById(`led${ch}`);
+      const pLabel = document.getElementById(`pwrLabel${ch}`);
+      const sTxt = document.getElementById(`statusTxt${ch}`);
+
+      if (cut) {
+        addLog(`Kirim -> POWER:${ch}:OFF`);
+        cube.classList.add('tripped');
+        rStat.innerText = 'Kontak: NC TERBUKA (OFF)';
+        rStat.style.color = '#ef4444';
+        gBox.className = 'gate-box dead';
+        scan.classList.add('off');
+        led.className = 'power-led off';
+        pLabel.innerText = 'Daya Dimatikan Manual (0V)';
+        sTxt.innerText = '🔴 POWER OFF';
+        sTxt.style.color = '#ef4444';
+        addLog(`STATUS:POWER:CH${ch}:OFF`, 'error');
+      } else {
+        addLog(`Kirim -> POWER:${ch}:ON`);
+        cube.classList.remove('tripped');
+        rStat.innerText = 'Kontak: NC TERTUTUP (ON)';
+        rStat.style.color = '#94a3b8';
+        gBox.className = 'gate-box active';
+        scan.classList.remove('off');
+        led.className = 'power-led on';
+        pLabel.innerText = 'Arus Adaptor 5V Mengalir';
+        sTxt.innerText = '🟢 STANDBY SCANNING';
+        sTxt.style.color = '#22c55e';
+        addLog(`STATUS:POWER:CH${ch}:ON`, 'success');
+      }
+    }
+  </script>
+</body>
+</html>

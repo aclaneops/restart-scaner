@@ -33,6 +33,8 @@ jobs:
           copy desktop_app\config.json desktop_app\dist\ScannerRestarter\
           copy skema_wiring_relay.png desktop_app\dist\ScannerRestarter\
           copy README.md desktop_app\dist\ScannerRestarter\
+          copy PANDUAN_TEKNISI_GATE_STASIUN.md desktop_app\dist\ScannerRestarter\
+          copy simulator_gate.html desktop_app\dist\ScannerRestarter\
           xcopy /E /I /Y drivers desktop_app\dist\ScannerRestarter\drivers\
 
       - name: Create ZIP Archive
