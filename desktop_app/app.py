@@ -1,6 +1,6 @@
 """
 =====================================================================
-KCI GATE SCANNER RESTARTER & CONTROLLER (LEGACY WINFORMS STYLE)
+KCI_restart _qrscan (LEGACY WINFORMS STYLE)
 =====================================================================
 Target Perangkat : Scanner QR Turnstile Gate Kereta (Gate In & Gate Out)
 Target Board     : Arduino Mega 2560 (Relay 2-CH / 4-CH Active-LOW)
@@ -44,9 +44,7 @@ DEFAULT_CONFIG = {
     "sched_specific_year": 2026,
     "sched_specific_month": 11,
     "sched_specific_day": 26,
-    "sched_interval_minutes": 360,
-    "station_id": "JAK",
-    "gate_id": "101"
+    "sched_interval_minutes": 360
 }
 
 SIMULATION_PORT = "[SIMULASI / DEMO VIRTUAL]"
@@ -69,11 +67,12 @@ FONT_TERM = ("Courier", 8)
 class KciGateRestarterApp:
     def __init__(self, root):
         self.root = root
-        self.root.title("KCI_GATE_REST v2.4")
+        # Judul Window sesuai permintaan: KCI_restart _qrscan
+        self.root.title("KCI_restart _qrscan")
         
         # Jendela Ringkas & Kompak (Tidak Fullscreen, agar bisa sandingan dengan KCI_GATE)
-        self.root.geometry("560x590+30+30")
-        self.root.minsize(540, 560)
+        self.root.geometry("560x570+30+30")
+        self.root.minsize(540, 540)
         self.root.configure(bg=WIN_BG)
 
         self.ser = None
@@ -128,21 +127,21 @@ class KciGateRestarterApp:
             pass
 
     # ==========================================
-    # DESAIN PERSIS KCI_GATE INDUSTRIAL (WINFORMS)
+    # DESAIN WINFORMS KOMPAK (GATE RELAY & GATE INFO DIHAPUS)
     # ==========================================
     def setup_ui(self):
-        # CONTAINER 2 KOLOM (KIRI = STATUS & KONTROL, KANAN = GATE INFO & LOG)
+        # CONTAINER 2 KOLOM
         main_frame = tk.Frame(self.root, bg=WIN_BG)
         main_frame.pack(fill="both", expand=True, padx=4, pady=4)
 
         # ----------------------------------------------------
-        # KOLOM KIRI (~46% WIDTH): STATUS DEVICE & KONTROL RELAY
+        # KOLOM KIRI (~46% WIDTH): STATUS DEVICE & KONTROL MANUAL
         # ----------------------------------------------------
         col_left = tk.Frame(main_frame, bg=WIN_BG, width=240)
         col_left.pack(side="left", fill="both", padx=(0, 4))
         col_left.pack_propagate(False)
 
-        # GROUPBOX STATUS (Persis seperti di foto KCI_GATE)
+        # GROUPBOX STATUS
         grp_status = tk.LabelFrame(col_left, text="STATUS", font=FONT_BOLD, bg=WIN_BG, fg="#000000", bd=2, relief="groove")
         grp_status.pack(fill="x", pady=(0, 4))
 
@@ -156,17 +155,12 @@ class KciGateRestarterApp:
         self.lbl_stat_sc2 = tk.Label(grp_status, text="Connected [D8 Normal]", font=FONT_BOLD, bg=STATUS_GREEN, fg="#000000", bd=1, relief="solid", anchor="w", padx=3)
         self.lbl_stat_sc2.pack(fill="x", pady=(0, 2))
 
-        # 3. GATE RELAY (FAIL-SAFE NC)
-        tk.Label(grp_status, text="GATE RELAY", font=FONT_TITLE, bg=BAR_BLACK, fg="#ffffff", anchor="w", padx=3).pack(fill="x", pady=(2, 0))
-        self.lbl_stat_relay = tk.Label(grp_status, text="Normally Closed (Fail-Safe OK)", font=FONT_BOLD, bg=STATUS_GREEN, fg="#000000", bd=1, relief="solid", anchor="w", padx=3)
-        self.lbl_stat_relay.pack(fill="x", pady=(0, 2))
-
-        # 4. CONTROLLER & WATCHDOG
+        # 3. CONTROLLER & WATCHDOG
         tk.Label(grp_status, text="CONTROLLER & WATCHDOG", font=FONT_TITLE, bg=BAR_BLACK, fg="#ffffff", anchor="w", padx=3).pack(fill="x", pady=(2, 0))
         self.lbl_stat_wdt = tk.Label(grp_status, text="Mega 2560 [WDT 8s Active]", font=FONT_BOLD, bg=STATUS_GREEN, fg="#000000", bd=1, relief="solid", anchor="w", padx=3)
         self.lbl_stat_wdt.pack(fill="x", pady=(0, 2))
 
-        # 5. PORT USB COM
+        # 4. PORT USB COM
         tk.Label(grp_status, text="USB SERIAL PORT", font=FONT_TITLE, bg=BAR_BLACK, fg="#ffffff", anchor="w", padx=3).pack(fill="x", pady=(2, 0))
         self.lbl_stat_port = tk.Label(grp_status, text="Connected [COM3 @ 9600]", font=FONT_BOLD, bg=STATUS_GREEN, fg="#000000", bd=1, relief="solid", anchor="w", padx=3)
         self.lbl_stat_port.pack(fill="x", pady=(0, 2))
@@ -235,7 +229,7 @@ class KciGateRestarterApp:
             bg=WIN_BTN,
             relief="raised",
             bd=2,
-            pady=3,
+            pady=4,
             command=lambda: self.manual_restart("ALL")
         )
         self.btn_restart_all.pack(fill="x", padx=4, pady=(2, 4))
@@ -243,41 +237,19 @@ class KciGateRestarterApp:
         # Cut / Normal Daya Darurat
         row_pwr = tk.Frame(grp_ctrl, bg=WIN_BG)
         row_pwr.pack(fill="x", padx=4, pady=2)
-        tk.Button(row_pwr, text="Cut Ch1", font=FONT_MAIN, bg=WIN_BTN, relief="raised", bd=1, command=lambda: self.send_serial_command("POWER:1:OFF")).pack(side="left", fill="x", expand=True, padx=(0, 1))
-        tk.Button(row_pwr, text="On Ch1", font=FONT_MAIN, bg=WIN_BTN, relief="raised", bd=1, command=lambda: self.send_serial_command("POWER:1:ON")).pack(side="left", fill="x", expand=True, padx=(1, 1))
-        tk.Button(row_pwr, text="Cut Ch2", font=FONT_MAIN, bg=WIN_BTN, relief="raised", bd=1, command=lambda: self.send_serial_command("POWER:2:OFF")).pack(side="left", fill="x", expand=True, padx=(1, 1))
-        tk.Button(row_pwr, text="On Ch2", font=FONT_MAIN, bg=WIN_BTN, relief="raised", bd=1, command=lambda: self.send_serial_command("POWER:2:ON")).pack(side="left", fill="x", expand=True, padx=(1, 0))
+        tk.Button(row_pwr, text="Cut 1", font=FONT_MAIN, bg=WIN_BTN, relief="raised", bd=1, command=lambda: self.send_serial_command("POWER:1:OFF")).pack(side="left", fill="x", expand=True, padx=(0, 1))
+        tk.Button(row_pwr, text="On 1", font=FONT_MAIN, bg=WIN_BTN, relief="raised", bd=1, command=lambda: self.send_serial_command("POWER:1:ON")).pack(side="left", fill="x", expand=True, padx=(1, 1))
+        tk.Button(row_pwr, text="Cut 2", font=FONT_MAIN, bg=WIN_BTN, relief="raised", bd=1, command=lambda: self.send_serial_command("POWER:2:OFF")).pack(side="left", fill="x", expand=True, padx=(1, 1))
+        tk.Button(row_pwr, text="On 2", font=FONT_MAIN, bg=WIN_BTN, relief="raised", bd=1, command=lambda: self.send_serial_command("POWER:2:ON")).pack(side="left", fill="x", expand=True, padx=(1, 0))
 
         # ----------------------------------------------------
-        # KOLOM KANAN (~54% WIDTH): GATE INFO, SCHEDULER, LOG
+        # KOLOM KANAN (~54% WIDTH): SCHEDULER & TERMINAL LOG
+        # (GATE INFO SUDAH DIHAPUS SEHINGGA RUANG LOG LEBIH LUAS)
         # ----------------------------------------------------
         col_right = tk.Frame(main_frame, bg=WIN_BG)
         col_right.pack(side="right", fill="both", expand=True)
 
-        # GROUPBOX GATE INFO (Persis Tabel di foto KCI_GATE)
-        grp_info = tk.LabelFrame(col_right, text="GATE INFO", font=FONT_BOLD, bg=WIN_BG, fg="#000000", bd=2, relief="groove")
-        grp_info.pack(fill="x", pady=(0, 4))
-
-        # TABEL HEADER HITAM
-        tbl_hdr = tk.Frame(grp_info, bg=BAR_BLACK)
-        tbl_hdr.pack(fill="x")
-        tk.Label(tbl_hdr, text="STATION", font=FONT_BOLD, bg=BAR_BLACK, fg="#ffffff", width=8, anchor="center").pack(side="left", padx=1)
-        tk.Label(tbl_hdr, text="GATE ID", font=FONT_BOLD, bg=BAR_BLACK, fg="#ffffff", width=8, anchor="center").pack(side="left", padx=1)
-        tk.Label(tbl_hdr, text="PORT", font=FONT_BOLD, bg=BAR_BLACK, fg="#ffffff", width=7, anchor="center").pack(side="left", padx=1)
-        tk.Label(tbl_hdr, text="DIRECTION", font=FONT_BOLD, bg=BAR_BLACK, fg="#ffffff", width=11, anchor="center").pack(side="left", padx=1)
-
-        # TABEL ROW ISI
-        tbl_row = tk.Frame(grp_info, bg="#ffffff", bd=1, relief="solid")
-        tbl_row.pack(fill="x")
-        self.lbl_tbl_stn = tk.Label(tbl_row, text="JAK", font=FONT_MAIN, bg="#ffffff", width=8, anchor="center")
-        self.lbl_tbl_stn.pack(side="left", padx=1)
-        self.lbl_tbl_gate = tk.Label(tbl_row, text="GT-101", font=FONT_MAIN, bg="#ffffff", width=8, anchor="center")
-        self.lbl_tbl_gate.pack(side="left", padx=1)
-        self.lbl_tbl_port = tk.Label(tbl_row, text="COM3", font=FONT_MAIN, bg="#ffffff", width=7, anchor="center")
-        self.lbl_tbl_port.pack(side="left", padx=1)
-        tk.Label(tbl_row, text="IN & OUT", font=FONT_MAIN, bg="#ffffff", width=11, anchor="center").pack(side="left", padx=1)
-
-        # GROUPBOX SCHEDULER OTOMATIS
+        # GROUPBOX SCHEDULER AUTO (DITARUH DI PALING ATAS KANAN)
         grp_sched = tk.LabelFrame(col_right, text="SCHEDULER AUTO", font=FONT_BOLD, bg=WIN_BG, fg="#000000", bd=2, relief="groove")
         grp_sched.pack(fill="x", pady=(0, 4))
 
@@ -361,14 +333,14 @@ class KciGateRestarterApp:
         self.lbl_sched_status = tk.Label(grp_sched, text="Scheduler: Disabled", font=FONT_MAIN, fg="#444444", bg=WIN_BG)
         self.lbl_sched_status.pack(anchor="w", padx=6, pady=(1, 3))
 
-        # TERMINAL LOG MONITOR (Persis Kotak Hitam di Foto KCI_GATE)
+        # TERMINAL LOG MONITOR (LEBIH LUAS & LAPANG KARENA GATE INFO DIHAPUS)
         grp_log = tk.Frame(col_right, bg=WIN_BG)
         grp_log.pack(fill="both", expand=True)
 
         self.txt_log = tk.Text(grp_log, bg=TERM_BG, fg=TERM_FG, font=FONT_TERM, relief="solid", bd=1, wrap="none")
         self.txt_log.pack(fill="both", expand=True)
 
-        # Tombol Bawah (Persis 'Clear Log' di Foto KCI_GATE)
+        # Bottom Bar: Jam, Counter & Tombol Clear Log
         b_bar = tk.Frame(col_right, bg=WIN_BG, pady=2)
         b_bar.pack(fill="x")
         
@@ -419,14 +391,10 @@ class KciGateRestarterApp:
         self.spin_spec_day.set(str(self.config.get("sched_specific_day", 26)))
         self.spin_interval.set(str(self.config.get("sched_interval_minutes", 360)))
 
-        self.lbl_tbl_stn.config(text=str(self.config.get("station_id", "JAK")))
-        self.lbl_tbl_gate.config(text=str(self.config.get("gate_id", "101")))
-
     # ==========================================
     # LOGGING
     # ==========================================
     def log(self, message):
-        # Format Timestamp persis foto: 2026-11-25 19:20:00.123 => ...
         now = datetime.datetime.now()
         ts = now.strftime("%Y-%m-%d %H:%M:%S") + f".{int(now.microsecond / 1000):03d}"
         line = f"{ts} => {message}"
@@ -568,7 +536,6 @@ class KciGateRestarterApp:
             self.is_simulation = True
             self.btn_connect.config(text="Disconnect")
             self.lbl_stat_port.config(text="Connected [SIMULATION]", bg=STATUS_GREEN)
-            self.lbl_tbl_port.config(text="SIM")
             self.port_combobox.config(state="disabled")
             self.log("Connected to Virtual Arduino Mega 2560 Simulator.")
             self.save_config()
@@ -581,7 +548,6 @@ class KciGateRestarterApp:
             self.is_simulation = False
             self.btn_connect.config(text="Disconnect")
             self.lbl_stat_port.config(text=f"Connected [{port} @ {baud}]", bg=STATUS_GREEN)
-            self.lbl_tbl_port.config(text=port)
             self.port_combobox.config(state="disabled")
             self.save_config()
             self.log(f"Connected to Arduino Mega at {port} successfully.")
@@ -605,7 +571,6 @@ class KciGateRestarterApp:
 
         self.btn_connect.config(text="Connect")
         self.lbl_stat_port.config(text="Disconnected / Socket Error", bg=STATUS_RED)
-        self.lbl_tbl_port.config(text="NONE")
         self.port_combobox.config(state="readonly")
         self.log("USB Connection Closed.")
 
@@ -720,14 +685,14 @@ class KciGateRestarterApp:
             return True
         if self.connect(silent=True):
             return True
-        messagebox.showinfo("KCI Gate", "Harap klik tombol 'Connect' terlebih dahulu.")
+        messagebox.showinfo("KCI_restart _qrscan", "Harap klik tombol 'Connect' terlebih dahulu.")
         return False
 
     def manual_restart(self, channel):
         if not self.check_ready():
             return
         ch_name = f"Scanner {channel}" if channel != "ALL" else "Kedua Scanner"
-        if messagebox.askyesno("KCI Gate Restarter", f"Eksekusi reboot daya pada {ch_name}?"):
+        if messagebox.askyesno("KCI_restart _qrscan", f"Eksekusi reboot daya pada {ch_name}?"):
             self.trigger_restart(channel=channel, source="MANUAL")
 
     def trigger_restart(self, channel="ALL", source="MANUAL"):

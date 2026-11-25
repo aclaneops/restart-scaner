@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KCI_GATE_REST v2.4 (Simulasi Standby EPC)</title>
+  <title>KCI_restart _qrscan (Simulasi Standby EPC)</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -160,31 +160,6 @@
       outline: none;
     }
 
-    /* GATE INFO TABLE (PERSIS FOTO KCI_GATE) */
-    .tbl-gate {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 2px;
-      border: 1px solid #000000;
-    }
-    .tbl-gate th {
-      background: #000000;
-      color: #ffffff;
-      font-weight: bold;
-      font-size: 10px;
-      padding: 2px 4px;
-      text-align: center;
-      border-right: 1px solid #404040;
-    }
-    .tbl-gate td {
-      background: #ffffff;
-      color: #000000;
-      font-size: 11px;
-      padding: 2px 4px;
-      text-align: center;
-      border-right: 1px solid #d4d0c8;
-    }
-
     /* SCHEDULER TABS WINFORMS STYLE */
     .win-tabs {
       display: flex;
@@ -226,7 +201,7 @@
       color: #00ff00;
       font-family: Courier, Consolas, monospace;
       font-size: 10px;
-      height: 190px;
+      height: 250px;
       overflow-y: scroll;
       padding: 4px;
       white-space: pre-wrap;
@@ -272,11 +247,11 @@
     <span style="color: #66ff66;">● Simulasi Mode Siap</span>
   </div>
 
-  <!-- WINDOWS CLASSIC WINDOW (KCI_GATE_REST) -->
+  <!-- WINDOWS CLASSIC WINDOW (KCI_restart _qrscan) -->
   <div class="win-app">
     <!-- TITLEBAR -->
     <div class="win-titlebar">
-      <span>KCI_GATE_REST v2.4</span>
+      <span>KCI_restart _qrscan</span>
       <div class="win-buttons">
         <div class="win-btn">_</div>
         <div class="win-btn">□</div>
@@ -303,15 +278,11 @@
           <div class="black-bar">SCANNER 2 (GATE OUT)</div>
           <div class="green-status" id="statSc2">Connected [D8 Normal]</div>
 
-          <!-- 3. GATE RELAY (NC) -->
-          <div class="black-bar">GATE RELAY</div>
-          <div class="green-status">Normally Closed (Fail-Safe OK)</div>
-
-          <!-- 4. CONTROLLER & WDT -->
+          <!-- 3. CONTROLLER & WDT -->
           <div class="black-bar">CONTROLLER &amp; WATCHDOG</div>
           <div class="green-status">Mega 2560 [WDT 8s Active]</div>
 
-          <!-- 5. USB SERIAL PORT -->
+          <!-- 4. USB SERIAL PORT -->
           <div class="black-bar">USB SERIAL PORT</div>
           <div class="green-status" id="statPort">Connected [COM3 @ 9600]</div>
 
@@ -364,32 +335,9 @@
       </div>
 
       <!-- ============================================== -->
-      <!-- KOLOM KANAN (GATE INFO, SCHEDULER, LOG TERMINAL) -->
+      <!-- KOLOM KANAN (SCHEDULER, LOG TERMINAL) -->
       <!-- ============================================== -->
       <div>
-        <!-- GROUPBOX GATE INFO (PERSIS TABEL DI FOTO) -->
-        <fieldset class="groupbox">
-          <legend class="groupbox-legend">GATE INFO</legend>
-          <table class="tbl-gate">
-            <thead>
-              <tr>
-                <th>STATION</th>
-                <th>GATE ID</th>
-                <th>PORT</th>
-                <th>DIRECTION</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>JAK</td>
-                <td>GT-101</td>
-                <td id="tdPort">COM3</td>
-                <td>IN &amp; OUT</td>
-              </tr>
-            </tbody>
-          </table>
-        </fieldset>
-
         <!-- GROUPBOX SCHEDULER AUTO -->
         <fieldset class="groupbox">
           <legend class="groupbox-legend">SCHEDULER AUTO</legend>
@@ -538,7 +486,6 @@
     function toggleConnect() {
       const btn = document.getElementById('btnConn');
       const stat = document.getElementById('statPort');
-      const td = document.getElementById('tdPort');
       const port = document.getElementById('selPort').value;
 
       if (isConn) {
@@ -546,14 +493,12 @@
         btn.innerText = 'Connect';
         stat.innerText = 'Disconnected / Socket Error';
         stat.className = 'green-status off';
-        td.innerText = 'NONE';
         writeLog(`USB Port ${port} Disconnected.`);
       } else {
         isConn = true;
         btn.innerText = 'Disconnect';
         stat.innerText = `Connected [${port} @ 9600]`;
         stat.className = 'green-status';
-        td.innerText = port;
         writeLog(`USB Port ${port} Connected successfully.`);
       }
     }
