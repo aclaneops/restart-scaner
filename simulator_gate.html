@@ -3,705 +3,407 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Simulasi Lengkap Aplikasi EPC & Gate QR Scanner Stasiun</title>
+  <title>Simulasi EPC Gate Scanner Restarter (Simple & Clean)</title>
   <style>
     :root {
-      --bg-dark: #090d16;
-      --bg-header: #1e293b;
-      --bg-card: #ffffff;
-      --bg-panel: #f1f5f9;
-      --text-main: #0f172a;
-      --text-muted: #64748b;
-      --border-color: #cbd5e1;
-      --blue: #2563eb;
-      --blue-hover: #1d4ed8;
+      --bg: #f8fafc;
+      --card: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
       --green: #16a34a;
-      --green-hover: #15803d;
       --red: #dc2626;
-      --red-hover: #b91c1c;
       --amber: #d97706;
-      --cyan: #0284c7;
-      --purple: #7c3aed;
+      --dark: #0f172a;
     }
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-      background: var(--bg-dark);
-      color: var(--text-main);
-      padding: 16px;
+      background: var(--bg);
+      color: var(--text);
+      padding: 24px;
       line-height: 1.4;
+      display: flex;
+      justify-content: center;
+    }
+    .wrapper {
+      width: 100%;
+      max-width: 720px;
     }
 
-    /* TOP BANNER */
-    .top-banner {
-      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-      border: 1px solid #334155;
-      border-radius: 10px;
-      padding: 14px 20px;
-      margin-bottom: 16px;
+    /* CARD CONTAINER */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.03);
+    }
+
+    /* HEADER */
+    .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      color: #f8fafc;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+      padding-bottom: 4px;
     }
-    .top-banner h1 {
-      font-size: 17px;
-      font-weight: 700;
-      color: #38bdf8;
-      display: flex;
+    .app-title { font-size: 16px; font-weight: 700; color: var(--text); }
+    .status-pill {
+      display: inline-flex;
       align-items: center;
-      gap: 10px;
-    }
-    .badge-sim {
-      background: rgba(34, 197, 94, 0.15);
-      color: #4ade80;
-      border: 1px solid #22c55e;
-      padding: 4px 12px;
-      border-radius: 20px;
+      gap: 6px;
       font-size: 11px;
-      font-weight: bold;
+      font-weight: 600;
+      padding: 3px 10px;
+      border-radius: 20px;
+      background: #f1f5f9;
+      color: var(--muted);
     }
+    .status-pill.connected { background: #ecfdf5; color: var(--green); }
+    .status-pill.disconnected { background: #fef2f2; color: var(--red); }
+    .status-dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+    .clock-text { font-family: ui-monospace, monospace; font-size: 12px; color: var(--muted); }
 
-    /* 2 COLUMN LAYOUT */
-    .main-grid {
-      display: grid;
-      grid-template-columns: 460px 1fr;
-      gap: 16px;
-      align-items: start;
-    }
-    @media (max-width: 1100px) {
-      .main-grid { grid-template-columns: 1fr; }
-    }
-
-    /* HARDWARE VISUAL CARD (KIRI) */
-    .hw-card {
-      background: #131b2e;
-      border: 1px solid #334155;
-      border-radius: 10px;
-      padding: 14px;
-      color: #f8fafc;
-    }
-    .hw-title {
-      font-size: 13px;
+    /* SECTION LABEL */
+    .section-title {
+      font-size: 10px;
       font-weight: 700;
-      color: #93c5fd;
-      border-bottom: 1px solid #334155;
-      padding-bottom: 6px;
-      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--muted);
+      margin-bottom: 10px;
       display: flex;
       justify-content: space-between;
+      align-items: center;
     }
-    .gate-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 12px;
-    }
-    .gate-unit {
-      background: #090d16;
-      border: 2px solid #334155;
-      border-radius: 8px;
-      padding: 10px;
-      text-align: center;
-      transition: all 0.3s;
-    }
-    .gate-unit.active { border-color: #22c55e; box-shadow: 0 0 12px rgba(34,197,94,0.25); }
-    .gate-unit.restarting { border-color: #f59e0b; box-shadow: 0 0 15px rgba(245,158,11,0.35); }
-    .gate-unit.off { border-color: #ef4444; opacity: 0.6; }
-    .gate-scanner-box {
-      margin-top: 8px;
-      background: #1e293b;
-      border: 1px dashed #475569;
-      border-radius: 6px;
-      padding: 8px;
-      position: relative;
-      overflow: hidden;
-    }
-    .laser-line {
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      background: #22c55e;
-      box-shadow: 0 0 8px #22c55e;
-      animation: scanAnim 1.4s infinite linear;
-    }
-    @keyframes scanAnim {
-      0% { top: 0; opacity: 0; }
-      50% { opacity: 1; }
-      100% { top: 90%; opacity: 0; }
-    }
-    .gate-scanner-box.off .laser-line { display: none; }
 
-    /* RELAY MODULE BOX */
-    .relay-visual {
-      background: #090d16;
-      border: 1px solid #2563eb;
-      border-radius: 8px;
-      padding: 10px;
-      margin-bottom: 12px;
-    }
-    .relay-cubes {
+    /* SCANNER CONTROLS (2 CLEAN BOXES) */
+    .scanners-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-top: 6px;
+      gap: 12px;
+      margin-bottom: 10px;
     }
-    .cube-item {
-      background: #1e293b;
-      border: 1px solid #334155;
+    .scanner-box {
+      background: #f8fafc;
+      border: 1px solid var(--border);
       border-radius: 6px;
-      padding: 8px;
-      text-align: center;
-    }
-    .cube-box {
-      background: #2563eb;
-      color: white;
-      font-size: 10px;
-      font-weight: bold;
-      padding: 8px 4px;
-      border-radius: 4px;
-      margin: 4px auto;
-      width: 70px;
+      padding: 14px;
       transition: all 0.2s;
     }
-    .cube-box.tripped { background: #dc2626; box-shadow: 0 0 12px #ef4444; }
-
-    /* SIMULASI VIRTUAL DESKTOP APP (KANAN) */
-    .app-window {
-      background: var(--bg-panel);
-      border: 1px solid #94a3b8;
-      border-radius: 8px;
-      box-shadow: 0 8px 30px rgba(0,0,0,0.6);
-      overflow: hidden;
+    .scanner-box.restarting {
+      border-color: #fde68a;
+      background: #fffbeb;
     }
-    /* WINDOW TITLEBAR */
-    .app-titlebar {
-      background: #0f172a;
-      color: #ffffff;
-      padding: 6px 12px;
+    .scanner-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .scanner-state {
+      font-size: 11px;
+      color: var(--green);
+      margin: 4px 0 12px 0;
+      font-weight: 500;
+    }
+    .scanner-state.restarting { color: var(--amber); }
+    .scanner-state.off { color: var(--red); }
+
+    /* BUTTONS */
+    .btn {
+      width: 100%;
+      padding: 9px 14px;
       font-size: 12px;
-      font-weight: bold;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #334155;
-    }
-    .win-buttons span {
-      display: inline-block;
-      width: 10px; height: 10px;
-      border-radius: 50%;
-      margin-left: 4px;
-    }
-    .wb-min { background: #eab308; }
-    .wb-max { background: #22c55e; }
-    .wb-close { background: #ef4444; }
-
-    /* APP BODY (EXACT LIKE app.py) */
-    .app-body { padding: 12px; font-size: 12px; }
-
-    /* HEADER APP */
-    .app-header {
-      background: var(--bg-header);
-      color: white;
+      font-weight: 600;
       border-radius: 6px;
-      padding: 10px 14px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
-    .app-header-title { font-size: 13px; font-weight: bold; }
-    .app-header-sub { font-size: 9px; color: #94a3b8; }
-    .clock-display {
-      background: #0f172a;
-      border: 1px solid #334155;
-      border-radius: 4px;
-      padding: 4px 10px;
-      text-align: right;
-    }
-    .clock-time { font-family: monospace; font-size: 13px; font-weight: bold; color: #38bdf8; }
-    .clock-date { font-size: 8px; color: #94a3b8; }
-
-    /* STATUS BADGES */
-    .status-strip {
-      background: white;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      padding: 8px 10px;
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
-      margin-bottom: 8px;
-    }
-    .status-col { text-align: left; }
-    .status-lbl { font-size: 8px; font-weight: bold; color: var(--text-muted); }
-    .status-val { font-size: 10px; font-weight: bold; }
-
-    /* CARDS */
-    .app-card {
-      background: white;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      padding: 10px;
-      margin-bottom: 8px;
-    }
-    .card-heading {
-      font-size: 10px;
-      font-weight: bold;
-      color: #0f172a;
-      margin-bottom: 8px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
-    /* INPUTS & CONTROLS */
-    select, input[type="text"], input[type="number"] {
-      border: 1px solid #cbd5e1;
-      border-radius: 4px;
-      padding: 4px 8px;
-      font-size: 11px;
-      outline: none;
-      background: white;
-    }
-    select:focus, input:focus { border-color: var(--blue); }
-
-    .btn-action {
-      border: none;
-      border-radius: 4px;
-      padding: 6px 12px;
-      font-size: 11px;
-      font-weight: bold;
+      border: 1px solid transparent;
       cursor: pointer;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 4px;
-      transition: all 0.2s;
+      gap: 6px;
+      transition: all 0.15s;
     }
-    .btn-action:active { transform: translateY(1px); }
-    .btn-blue { background: var(--blue); color: white; }
-    .btn-blue:hover { background: var(--blue-hover); }
-    .btn-green { background: var(--green); color: white; }
-    .btn-green:hover { background: var(--green-hover); }
-    .btn-red { background: var(--red); color: white; }
-    .btn-red:hover { background: var(--red-hover); }
-    .btn-gray { background: #e2e8f0; color: #0f172a; }
-    .btn-gray:hover { background: #cbd5e1; }
+    .btn:active { transform: translateY(1px); }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-hover); }
+    .btn-secondary {
+      background: #f1f5f9;
+      color: var(--text);
+      border-color: var(--border);
+    }
+    .btn-secondary:hover { background: #e2e8f0; }
+    .btn-danger { background: #fee2e2; color: var(--red); }
+    .btn-danger:hover { background: #fecaca; }
+
+    /* FORM ELEMENTS */
+    select, input[type="number"], input[type="text"] {
+      padding: 5px 8px;
+      border: 1px solid var(--border);
+      border-radius: 5px;
+      font-size: 12px;
+      color: var(--text);
+      background: white;
+      outline: none;
+    }
+    select:focus, input:focus { border-color: var(--primary); }
 
     /* SCHEDULER TABS */
-    .tabs-header {
+    .tabs-nav {
       display: flex;
-      border-bottom: 2px solid #cbd5e1;
-      margin-bottom: 8px;
-      gap: 2px;
+      border-bottom: 1px solid var(--border);
+      margin: 10px 0;
+      gap: 4px;
     }
-    .tab-btn {
-      padding: 5px 10px;
-      background: #e2e8f0;
-      border: 1px solid #cbd5e1;
-      border-bottom: none;
-      border-radius: 4px 4px 0 0;
+    .tab-item {
+      padding: 6px 12px;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted);
+      border-radius: 5px 5px 0 0;
       cursor: pointer;
-      font-size: 10px;
-      font-weight: bold;
-      color: #475569;
+      border: 1px solid transparent;
+      border-bottom: none;
+      background: transparent;
     }
-    .tab-btn.active {
+    .tab-item.active {
+      color: var(--primary);
       background: white;
-      color: var(--blue);
-      border-color: #cbd5e1;
+      border-color: var(--border);
       border-bottom: 2px solid white;
-      margin-bottom: -2px;
+      margin-bottom: -1px;
     }
-    .tab-content { display: none; padding: 6px 4px; }
-    .tab-content.active { display: block; }
+    .tab-pane { display: none; padding: 6px 0; font-size: 12px; color: var(--muted); }
+    .tab-pane.active { display: block; }
 
-    /* CONSOLE */
-    .app-console {
-      background: #0f172a;
+    /* LOG CONSOLE */
+    .log-terminal {
+      background: var(--dark);
+      border-radius: 6px;
+      padding: 10px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      font-size: 11px;
       color: #38bdf8;
-      border-radius: 4px;
-      padding: 8px;
-      font-family: monospace;
-      font-size: 10px;
-      height: 120px;
+      height: 110px;
       overflow-y: auto;
     }
-    .console-row { margin-bottom: 2px; }
-    .c-green { color: #4ade80; }
-    .c-amber { color: #fbbf24; }
-    .c-red { color: #f87171; }
+    .log-line { margin-bottom: 3px; word-break: break-all; }
+    .log-green { color: #4ade80; }
+    .log-amber { color: #fbbf24; }
+    .log-red { color: #f87171; }
+
+    /* MINIMALIST HARDWARE WIDGET (SUBTLE AT BOTTOM) */
+    .hw-widget {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #f8fafc;
+      border: 1px dashed var(--border);
+      border-radius: 6px;
+      padding: 10px 14px;
+      margin-top: 10px;
+      font-size: 11px;
+      color: var(--muted);
+    }
   </style>
 </head>
 <body>
 
-  <!-- TOP BANNER -->
-  <div class="top-banner">
-    <div>
-      <h1>⚡ SIMULATOR LENGKAP HARDWARE & APLIKASI EPC GATE STASIUN</h1>
-      <p style="color: #94a3b8; font-size: 11px; margin-top: 3px;">
-        Uji coba 100% interaktif dari MacBook tanpa perlu hardware fisik maupun PC EPC asli.
-      </p>
-    </div>
-    <div class="badge-sim">● LIVE INTERACTIVE SIMULATOR</div>
-  </div>
+  <div class="wrapper">
 
-  <div class="main-grid">
-
-    <!-- ============================================== -->
-    <!-- KOLOM KIRI: VISUALISASI GERBANG & HARDWARE -->
-    <!-- ============================================== -->
-    <div class="hw-card">
-      <div class="hw-title">
-        <span>🚇 Turnstile Gate Stasiun (Fisik)</span>
-        <span style="color: #4ade80; font-size: 11px;">Relay NC Fail-Safe</span>
-      </div>
-
-      <!-- 2 GATE TURNSTILES -->
-      <div class="gate-row">
-        <!-- GATE 1 (IN) -->
-        <div class="gate-unit active" id="hwGate1">
-          <div style="font-size: 24px;">🚪⬅️</div>
-          <strong style="font-size: 11px; color: #e2e8f0;">GATE 1 (MASUK / IN)</strong>
-          <div style="font-size: 9px; color: #94a3b8;">Pin Arduino D7</div>
-
-          <div class="gate-scanner-box" id="hwScan1">
-            <div class="laser-line"></div>
-            <div style="font-size: 18px;">📱 QR TIKET</div>
-            <div style="font-size: 9px; color: #22c55e; font-weight: bold;" id="hwScanTxt1">🟢 STANDBY SCAN</div>
-          </div>
-
-          <div style="margin-top: 6px; font-size: 10px; color: #cbd5e1;" id="hwPwr1">
-            ⚡ Adaptor 5V Mengalir (NC)
-          </div>
-          <button class="btn-action btn-blue" style="width: 100%; margin-top: 6px; font-size: 10px; padding: 4px;" onclick="tapTiket(1)">
-            📲 Tes Scan Tiket
-          </button>
-        </div>
-
-        <!-- GATE 2 (OUT) -->
-        <div class="gate-unit active" id="hwGate2">
-          <div style="font-size: 24px;">🚪➡️</div>
-          <strong style="font-size: 11px; color: #e2e8f0;">GATE 2 (KELUAR / OUT)</strong>
-          <div style="font-size: 9px; color: #94a3b8;">Pin Arduino D8</div>
-
-          <div class="gate-scanner-box" id="hwScan2">
-            <div class="laser-line"></div>
-            <div style="font-size: 18px;">📱 QR TIKET</div>
-            <div style="font-size: 9px; color: #22c55e; font-weight: bold;" id="hwScanTxt2">🟢 STANDBY SCAN</div>
-          </div>
-
-          <div style="margin-top: 6px; font-size: 10px; color: #cbd5e1;" id="hwPwr2">
-            ⚡ Adaptor 5V Mengalir (NC)
-          </div>
-          <button class="btn-action btn-blue" style="width: 100%; margin-top: 6px; font-size: 10px;" onclick="tapTiket(2)">
-            📲 Tes Scan Tiket
-          </button>
+    <!-- 1. HEADER RINGKAS -->
+    <div class="card header">
+      <div>
+        <div class="app-title">⚡ Gate Scanner Restarter</div>
+        <div style="font-size: 11px; color: var(--muted); margin-top: 2px;">
+          Pengendali Otomatis Turnstile Gate QR Stasiun Kereta
         </div>
       </div>
-
-      <!-- VISUAL RELAY 2-CHANNEL -->
-      <div class="relay-visual">
-        <div style="display: flex; justify-content: space-between; font-size: 11px;">
-          <strong style="color: #93c5fd;">⚡ Modul Relay 2-Channel (Songle 5V)</strong>
-          <span style="color: #94a3b8;">Active-LOW (Jalur NC)</span>
-        </div>
-        <div class="relay-cubes">
-          <div class="cube-item">
-            <span style="font-size: 10px; font-weight: bold;">Relay 1 (Scanner 1)</span>
-            <div class="cube-box" id="cube1">RELAY 1</div>
-            <div style="font-size: 9px; color: #4ade80;" id="cubeStatus1">NC TERTUTUP (ON)</div>
-          </div>
-          <div class="cube-item">
-            <span style="font-size: 10px; font-weight: bold;">Relay 2 (Scanner 2)</span>
-            <div class="cube-box" id="cube2">RELAY 2</div>
-            <div style="font-size: 9px; color: #4ade80;" id="cubeStatus2">NC TERTUTUP (ON)</div>
-          </div>
-        </div>
+      <div style="text-align: right;">
+        <div class="clock-text" id="liveClock">00:00:00 WIB</div>
+        <div style="font-size: 11px; color: var(--muted); margin-top: 2px;" id="counterText">Total Restart: 0x</div>
       </div>
-
-      <!-- ARDUINO MEGA PIN VISUAL -->
-      <div style="background: #090d16; border: 1px solid #334155; border-radius: 8px; padding: 10px; font-size: 10px;">
-        <div style="color: #38bdf8; font-weight: bold; margin-bottom: 4px;">📟 Status Arduino Mega 2560 (Virtual):</div>
-        <div style="color: #94a3b8; line-height: 1.5;">
-          • <strong>Hardware Watchdog (WDT):</strong> Aktif (8 Detik Auto-Reset jika hang)<br>
-          • <strong>Pin Terhubung:</strong> D7 (Relay 1), D8 (Relay 2), 5V, GND<br>
-          • <strong>Kabel USB:</strong> Tercolok ke Host PC EPC (Baud 9600)
-        </div>
-      </div>
-
     </div>
 
-    <!-- ============================================== -->
-    <!-- KOLOM KANAN: APLIKASI DESKTOP EPC LENGKAP -->
-    <!-- ============================================== -->
-    <div class="app-window">
-      <!-- WINDOW TITLE -->
-      <div class="app-titlebar">
-        <span>⚡ EPC RAILWAY GATE RESTARTER & SCHEDULER (WINDOWS 32-BIT APP)</span>
-        <div class="win-buttons">
-          <span class="wb-min"></span>
-          <span class="wb-max"></span>
-          <span class="wb-close"></span>
-        </div>
+    <!-- 2. KONTROL UTAMA SCANNER (BERSIH & FOKUS) -->
+    <div class="card">
+      <div class="section-title">
+        <span>Kontrol Scanner QR</span>
+        <span style="font-size: 11px; font-weight: normal; color: var(--muted);">
+          Jeda putus daya: 
+          <input type="number" id="spinDuration" value="4" min="2" max="15" style="width: 42px; text-align: center;"> detik
+        </span>
       </div>
 
-      <div class="app-body">
-
-        <!-- 1. HEADER & JAM EPC HOST -->
-        <div class="app-header">
-          <div>
-            <div class="app-header-title">⚡ EPC GATE SCANNER RESTARTER (MULTI-CHANNEL)</div>
-            <div class="app-header-sub">Pengendali Scanner QR Gate Stasiun Kereta (Relay NC Fail-Safe + WDT 8s)</div>
-          </div>
-          <div class="clock-display">
-            <div class="clock-time" id="epcClock">00:00:00 WIB</div>
-            <div class="clock-date" id="epcDate">Waktu Host PC EPC</div>
-          </div>
-        </div>
-
-        <!-- 2. STATUS STRIP (4 BADGES) -->
-        <div class="status-strip">
-          <div class="status-col">
-            <div class="status-lbl">KONEKSI USB ARDUINO</div>
-            <div class="status-val" id="badgeUsb" style="color: var(--green);">● TERHUBUNG (COM3)</div>
-          </div>
-          <div class="status-col">
-            <div class="status-lbl">SCANNER 1 (GATE IN)</div>
-            <div class="status-val" id="badgeSc1" style="color: var(--green);">🟢 DAYA ON (NC)</div>
-          </div>
-          <div class="status-col">
-            <div class="status-lbl">SCANNER 2 (GATE OUT)</div>
-            <div class="status-val" id="badgeSc2" style="color: var(--green);">🟢 DAYA ON (NC)</div>
-          </div>
-          <div class="status-col">
-            <div class="status-lbl">TOTAL RESTART</div>
-            <div class="status-val" id="badgeCounter">0x</div>
-          </div>
-        </div>
-
-        <!-- 3. PILIH PORT KOMUNIKASI SERIAL / USB -->
-        <div class="app-card">
-          <div class="card-heading">
-            <span>🔌 1. PORT KOMUNIKASI SERIAL / USB ARDUINO</span>
-            <span style="font-size: 9px; color: var(--text-muted);">Baud: 9600 bps</span>
-          </div>
-
-          <div style="display: flex; gap: 6px; align-items: center; margin-bottom: 6px;">
-            <label style="font-weight: bold;">Pilih Port USB:</label>
-            <select id="usbPortSelect" style="flex: 1;" onchange="onPortSelectChange()">
-              <option value="COM3">COM3 (USB-SERIAL CH340 - Arduino Mega Gate)</option>
-              <option value="COM1">COM1 (Standard Communications Port)</option>
-              <option value="COM4">COM4 (Arduino Mega 2560 - ATmega16U2)</option>
-              <option value="SIM">SIMULATOR / VIRTUAL MEGA (Demo Mode)</option>
-            </select>
-            <button class="btn-action btn-gray" onclick="rescanPort()">🔄 Refresh</button>
-            <label style="font-size: 10px; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
-              <input type="checkbox" id="chkAutoConn" checked> Auto-Connect USB
-            </label>
-          </div>
-
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-size: 9px; color: var(--text-muted);">Status Hardware: Port Arduino terdeteksi siap berkomunikasi.</span>
-            <button class="btn-action btn-green" id="btnConnect" onclick="toggleConnect()">
-              🟢 HUBUNGKAN PORT FISIK TERPILIH
-            </button>
-          </div>
-        </div>
-
-        <!-- 4. KONTROL MANUAL SCANNER QR (PER-CHANNEL & STAGGERED) -->
-        <div class="app-card">
-          <div class="card-heading">
-            <span>⚡ 2. KONTROL MANUAL SCANNER QR (PER-CHANNEL & SERENTAK)</span>
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <span>Jeda Arus:</span>
-              <input type="number" id="spinDur" value="4" min="2" max="15" style="width: 45px; text-align: center;">
-              <span>detik</span>
-            </div>
-          </div>
-
-          <!-- 2 BOX PER-CHANNEL -->
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 6px;">
-            <!-- SCANNER 1 BOX -->
-            <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 8px;">
-              <div style="font-weight: bold; color: var(--blue); font-size: 11px; margin-bottom: 4px;">Scanner 1 (Gate In)</div>
-              <button class="btn-action btn-blue" style="width: 100%; margin-bottom: 4px;" onclick="execRestart(1)">
-                ⚡ RESTART SCANNER 1
-              </button>
-              <div style="display: flex; gap: 4px;">
-                <button class="btn-action btn-red" style="flex: 1; font-size: 9px; padding: 3px;" onclick="execPower(1, false)">🔴 Cut</button>
-                <button class="btn-action btn-green" style="flex: 1; font-size: 9px; padding: 3px;" onclick="execPower(1, true)">🟢 Normal</button>
-              </div>
-            </div>
-
-            <!-- SCANNER 2 BOX -->
-            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 6px; padding: 8px;">
-              <div style="font-weight: bold; color: var(--green); font-size: 11px; margin-bottom: 4px;">Scanner 2 (Gate Out)</div>
-              <button class="btn-action btn-blue" style="width: 100%; margin-bottom: 4px;" onclick="execRestart(2)">
-                ⚡ RESTART SCANNER 2
-              </button>
-              <div style="display: flex; gap: 4px;">
-                <button class="btn-action btn-red" style="flex: 1; font-size: 9px; padding: 3px;" onclick="execPower(2, false)">🔴 Cut</button>
-                <button class="btn-action btn-green" style="flex: 1; font-size: 9px; padding: 3px;" onclick="execPower(2, true)">🟢 Normal</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- STAGGERED RESTART -->
-          <button class="btn-action btn-blue" style="width: 100%; background: #3b82f6; font-size: 11px; padding: 8px;" onclick="execRestartAll()">
-            ⚡ RESTART SEMUA SCANNER (STAGGERED / BERGILIRAN DENGAN JEDA 1.5 DETIK)
+      <div class="scanners-grid">
+        <!-- SCANNER 1 (GATE IN) -->
+        <div class="scanner-box" id="boxSc1">
+          <div class="scanner-name">Scanner 1 (Gate In)</div>
+          <div class="scanner-state" id="stateSc1">🟢 Normal (Power ON)</div>
+          <button class="btn btn-primary" onclick="restartScanner(1)">
+            ⚡ Restart Scanner 1
           </button>
         </div>
 
-        <!-- 5. PENJADWALAN FLEKSIBEL (5 TAB INTERAKTIF) -->
-        <div class="app-card">
-          <div class="card-heading">
-            <span>⏰ 3. PENJADWALAN OTOMATIS GATE KERETA (5 TAB ADVANCED)</span>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <label style="font-weight: bold; font-size: 10px; cursor: pointer;">
-                <input type="checkbox" id="chkSchedActive" onchange="toggleScheduler()"> Aktifkan Penjadwalan
-              </label>
-            </div>
-          </div>
+        <!-- SCANNER 2 (GATE OUT) -->
+        <div class="scanner-box" id="boxSc2">
+          <div class="scanner-name">Scanner 2 (Gate Out)</div>
+          <div class="scanner-state" id="stateSc2">🟢 Normal (Power ON)</div>
+          <button class="btn btn-primary" onclick="restartScanner(2)">
+            ⚡ Restart Scanner 2
+          </button>
+        </div>
+      </div>
 
-          <!-- SETTING TARGET & JAM EKSEKUSI -->
-          <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 4px; padding: 6px 10px; margin-bottom: 8px;">
-            <div style="display: flex; align-items: center; gap: 6px;">
-              <strong>Target:</strong>
-              <select id="schedTarget">
-                <option value="ALL">Semua Scanner (Staggered)</option>
-                <option value="CH1">Scanner 1 Saja (Gate In)</option>
-                <option value="CH2">Scanner 2 Saja (Gate Out)</option>
-              </select>
-            </div>
+      <!-- RESTART KEDUANYA (STAGGERED) -->
+      <button class="btn btn-secondary" onclick="restartBoth()">
+        ⚡ Restart Kedua Scanner (Bergiliran / Jeda 1.5s)
+      </button>
+    </div>
 
-            <div style="display: flex; align-items: center; gap: 4px;">
-              <strong>Waktu Eksekusi:</strong>
-              <select id="schedHour">
-                <!-- 00 - 23 -->
-                <option value="02" selected>02</option>
-                <option value="03">03</option>
-                <option value="04">04</option>
-                <option value="12">12</option>
-                <option value="18">18</option>
-                <option value="23">23</option>
-              </select>
-              <span>:</span>
-              <select id="schedMin">
-                <option value="00" selected>00</option>
-                <option value="15">15</option>
-                <option value="30">30</option>
-                <option value="45">45</option>
-              </select>
-              <span>WIB</span>
-            </div>
-          </div>
-
-          <!-- TABS HEADER -->
-          <div class="tabs-header">
-            <button class="tab-btn active" onclick="switchTab(0)">📅 Setiap Hari</button>
-            <button class="tab-btn" onclick="switchTab(1)">🗓️ Hari Tertentu</button>
-            <button class="tab-btn" onclick="switchTab(2)">📆 Tanggal Tiap Bulan</button>
-            <button class="tab-btn" onclick="switchTab(3)">🎯 Tanggal Kalender</button>
-            <button class="tab-btn" onclick="switchTab(4)">⏱️ Interval Rutin</button>
-          </div>
-
-          <!-- TAB 1: SETIAP HARI -->
-          <div class="tab-content active" id="tab0">
-            <p style="color: #334155;">
-              Scanner akan di-restart otomatis <strong>SETIAP HARI</strong> pada jam <strong>02:00 WIB</strong> (saat jadwal operasional stasiun tutup).
-            </p>
-          </div>
-
-          <!-- TAB 2: HARI TERTENTU -->
-          <div class="tab-content" id="tab1">
-            <div style="display: flex; gap: 6px; align-items: center;">
-              <strong>Pilih Hari:</strong>
-              <label><input type="checkbox" checked> Sen</label>
-              <label><input type="checkbox" checked> Sel</label>
-              <label><input type="checkbox" checked> Rab</label>
-              <label><input type="checkbox" checked> Kam</label>
-              <label><input type="checkbox" checked> Jum</label>
-              <label><input type="checkbox" checked> Sab</label>
-              <label><input type="checkbox" checked> Min</label>
-            </div>
-          </div>
-
-          <!-- TAB 3: TANGGAL BULANAN -->
-          <div class="tab-content" id="tab2">
-            <div style="display: flex; gap: 6px; align-items: center;">
-              <strong>Setiap Tanggal:</strong>
-              <input type="number" value="1" min="1" max="31" style="width: 45px;">
-              <span>tiap bulan pada jam eksekusi yang ditentukan.</span>
-            </div>
-          </div>
-
-          <!-- TAB 4: TANGGAL SPESIFIK -->
-          <div class="tab-content" id="tab3">
-            <div style="display: flex; gap: 6px; align-items: center;">
-              <strong>Tanggal:</strong>
-              <input type="number" value="26" style="width: 45px;">
-              <select>
-                <option>November</option>
-                <option>Desember</option>
-              </select>
-              <input type="number" value="2026" style="width: 60px;">
-              <span style="color: var(--text-muted); font-size: 10px;">(1x jalan pada tanggal ini)</span>
-            </div>
-          </div>
-
-          <!-- TAB 5: INTERVAL RUTIN -->
-          <div class="tab-content" id="tab4">
-            <div style="display: flex; gap: 6px; align-items: center;">
-              <strong>Restart berulang setiap:</strong>
-              <input type="number" id="spinInterval" value="10" min="1" max="1440" style="width: 55px;" onchange="resetIntervalTimer()">
-              <span>menit (atau coba isi <strong>0.2</strong> menit = 12 detik untuk tes cepat simulasi!)</span>
-            </div>
-          </div>
-
-          <!-- LIVE COUNTDOWN STATUS BAR -->
-          <div style="margin-top: 8px; padding: 6px 8px; background: #eff6ff; border: 1px solid #bfdbfe; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;">
-            <span style="font-weight: bold; color: var(--blue);" id="schedLiveStatus">
-              Status Penjadwalan: NONAKTIF (Centang 'Aktifkan Penjadwalan' di atas)
-            </span>
-            <button class="btn-action btn-blue" style="font-size: 9px; padding: 2px 6px;" onclick="triggerTestIntervalNow()">
-              ⚡ Tes Picu Sekarang
-            </button>
-          </div>
+    <!-- 3. KONEKSI USB SERIAL (SINGLE LINE MINIMALIS) -->
+    <div class="card" style="padding: 12px 16px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px; flex: 1;">
+          <span style="font-size: 12px; font-weight: 600;">Port USB:</span>
+          <select id="comPortSelect" style="flex: 1; max-width: 320px;" onchange="onPortChange()">
+            <option value="COM3">COM3 (USB-SERIAL CH340 Arduino Mega)</option>
+            <option value="COM1">COM1 (Communications Port)</option>
+            <option value="SIM">Simulasi / Virtual Arduino Mega</option>
+          </select>
+          <span class="status-pill connected" id="pillStatus">
+            <span class="status-dot"></span>
+            <span id="pillText">Terhubung</span>
+          </span>
         </div>
 
-        <!-- 6. LOG AKTIVITAS TERMINAL REAL-TIME -->
-        <div class="app-card">
-          <div class="card-heading">
-            <span>📜 4. LOG AKTIVITAS & MONITORING GATE KERETA</span>
-            <button class="btn-action btn-gray" style="font-size: 9px; padding: 2px 6px;" onclick="clearConsole()">Bersihkan Log</button>
-          </div>
-          <div class="app-console" id="consoleBox">
-            <div class="console-row c-green">[18:59:00] STATUS:READY:GATE_SCANNER_CONTROLLER_4CH</div>
-            <div class="console-row">[18:59:00] Hardware Watchdog Timer (WDT) Aktif (8 Detik)</div>
-            <div class="console-row">[18:59:00] Relay NC Closed: Daya Scanner 1 (Pin 7) & Scanner 2 (Pin 8) Mengalir Normal.</div>
-            <div class="console-row">[18:59:00] Terhubung ke Arduino Mega di COM3. Sistem siap.</div>
-          </div>
-        </div>
+        <button class="btn btn-secondary" id="btnToggleConnect" style="width: auto; padding: 5px 12px; font-size: 11px;" onclick="toggleConnection()">
+          Putuskan
+        </button>
+      </div>
+    </div>
 
+    <!-- 4. PENJADWALAN OTOMATIS (SIMPLE TABBED) -->
+    <div class="card">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <label style="font-size: 13px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+          <input type="checkbox" id="chkSchedActive" onchange="toggleScheduler()">
+          Aktifkan Jadwal Otomatis
+        </label>
+
+        <div style="display: flex; align-items: center; gap: 6px; font-size: 12px;">
+          <span>Target:</span>
+          <select id="schedTarget" style="font-size: 11px;">
+            <option value="ALL">Semua Scanner</option>
+            <option value="CH1">Scanner 1 Saja</option>
+            <option value="CH2">Scanner 2 Saja</option>
+          </select>
+
+          <span style="margin-left: 6px;">Pukul:</span>
+          <select id="schedHour" style="font-size: 11px;">
+            <option value="02" selected>02</option>
+            <option value="03">03</option>
+            <option value="04">04</option>
+            <option value="23">23</option>
+          </select>
+          <span>:</span>
+          <select id="schedMin" style="font-size: 11px;">
+            <option value="00" selected>00</option>
+            <option value="30">30</option>
+          </select>
+          <span>WIB</span>
+        </div>
+      </div>
+
+      <!-- TABS -->
+      <div class="tabs-nav">
+        <button class="tab-item active" onclick="setTab(0)">Setiap Hari</button>
+        <button class="tab-item" onclick="setTab(1)">Hari Tertentu</button>
+        <button class="tab-item" onclick="setTab(2)">Tanggal Bulanan</button>
+        <button class="tab-item" onclick="setTab(3)">Tanggal Kalender</button>
+        <button class="tab-item" onclick="setTab(4)">Interval Rutin</button>
+      </div>
+
+      <!-- TAB CONTENTS -->
+      <div class="tab-pane active" id="pane0">
+        Restart otomatis dijalankan setiap hari pada pukul <strong>02:00 WIB</strong> (saat jadwal stasiun tutup).
+      </div>
+      <div class="tab-pane" id="pane1">
+        Pilih hari: 
+        <label><input type="checkbox" checked> Sen</label> 
+        <label><input type="checkbox" checked> Sel</label> 
+        <label><input type="checkbox" checked> Rab</label> 
+        <label><input type="checkbox" checked> Kam</label> 
+        <label><input type="checkbox" checked> Jum</label> 
+        <label><input type="checkbox" checked> Sab</label> 
+        <label><input type="checkbox" checked> Min</label>
+      </div>
+      <div class="tab-pane" id="pane2">
+        Dijalankan setiap tanggal <input type="number" value="1" min="1" max="31" style="width: 40px;"> tiap bulan.
+      </div>
+      <div class="tab-pane" id="pane3">
+        Dijalankan 1x pada tanggal: <input type="number" value="26" style="width: 40px;"> November 2026.
+      </div>
+      <div class="tab-pane" id="pane4">
+        Restart berulang setiap: 
+        <input type="number" id="intervalInput" value="10" min="1" style="width: 50px;" onchange="resetInterval()"> 
+        menit <span style="font-size: 11px; color: var(--muted);">(atau coba isi <strong>0.2</strong> menit = 12 detik untuk tes cepat).</span>
+      </div>
+
+      <!-- COUNTDOWN LINE -->
+      <div style="margin-top: 10px; padding: 6px 10px; background: #f8fafc; border-radius: 4px; font-size: 11px; display: flex; justify-content: space-between; align-items: center;">
+        <span id="schedCountdownText" style="color: var(--muted);">Status Jadwal: Nonaktif</span>
+        <button class="btn btn-secondary" style="width: auto; padding: 2px 8px; font-size: 10px;" onclick="testFireNow()">
+          ⚡ Tes Jadwal Sekarang
+        </button>
+      </div>
+    </div>
+
+    <!-- 5. LOG AKTIVITAS (RINGKAS) -->
+    <div class="card" style="padding: 12px 16px;">
+      <div class="section-title">
+        <span>Log Aktivitas</span>
+        <span style="font-size: 10px; cursor: pointer; color: var(--primary);" onclick="clearLogs()">Bersihkan</span>
+      </div>
+      <div class="log-terminal" id="termLogs">
+        <div class="log-line log-green">[19:10:00] Sistem siap. Terhubung ke Arduino Mega di COM3.</div>
+        <div class="log-line">[19:10:00] Relay NC Closed: Daya Scanner 1 (D7) & Scanner 2 (D8) ON.</div>
+      </div>
+    </div>
+
+    <!-- 6. WIDGET TES FISIK MINIMALIS -->
+    <div class="hw-widget">
+      <div>
+        <strong>Simulasi Fisik Turnstile:</strong> 
+        Scanner 1 <span id="hw1State" style="color: var(--green);">[ON]</span> | 
+        Scanner 2 <span id="hw2State" style="color: var(--green);">[ON]</span>
+      </div>
+      <div style="display: flex; gap: 8px;">
+        <button class="btn btn-secondary" style="width: auto; padding: 3px 8px; font-size: 10px;" onclick="testPassengerScan(1)">
+          📲 Tap Tiket Gate In
+        </button>
+        <button class="btn btn-secondary" style="width: auto; padding: 3px 8px; font-size: 10px;" onclick="testPassengerScan(2)">
+          📲 Tap Tiket Gate Out
+        </button>
       </div>
     </div>
 
   </div>
 
   <script>
-    // Audio synthesizer klik relay
+    // Audio klik relay
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playClick() {
       try {
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = 'square';
-        osc.frequency.setValueAtTime(450, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.04);
-        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.04);
+        gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.04);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
@@ -710,277 +412,220 @@
       } catch (e) {}
     }
 
-    // Jam Realtime EPC Host
+    // Jam Realtime
     setInterval(() => {
       const now = new Date();
-      document.getElementById('epcClock').innerText = now.toLocaleTimeString('id-ID') + ' WIB';
-      document.getElementById('epcDate').innerText = now.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-      runSchedulerTick();
+      document.getElementById('liveClock').innerText = now.toLocaleTimeString('id-ID') + ' WIB';
+      tickScheduler();
     }, 1000);
 
-    function logConsole(text, cls = '') {
-      const box = document.getElementById('consoleBox');
+    function addLog(text, type = '') {
+      const box = document.getElementById('termLogs');
       const time = new Date().toLocaleTimeString('id-ID');
-      const row = document.createElement('div');
-      row.className = 'console-row ' + cls;
-      row.innerText = `[${time}] ${text}`;
-      box.appendChild(row);
+      const div = document.createElement('div');
+      div.className = 'log-line ' + type;
+      div.innerText = `[${time}] ${text}`;
+      box.appendChild(div);
       box.scrollTop = box.scrollHeight;
     }
 
-    function clearConsole() {
-      document.getElementById('consoleBox').innerHTML = '';
-      logConsole('Log konsol dibersihkan.');
+    function clearLogs() {
+      document.getElementById('termLogs').innerHTML = '';
+      addLog('Log dibersihkan.');
     }
 
-    // CONNECT / DISCONNECT SIMULASI USB
+    // KONEKSI USB
     let isConnected = true;
-    function toggleConnect() {
-      const btn = document.getElementById('btnConnect');
-      const badge = document.getElementById('badgeUsb');
-      const select = document.getElementById('usbPortSelect');
-      const portName = select.value;
+    function toggleConnection() {
+      const btn = document.getElementById('btnToggleConnect');
+      const pill = document.getElementById('pillStatus');
+      const pillText = document.getElementById('pillText');
+      const port = document.getElementById('comPortSelect').value;
 
       if (isConnected) {
         isConnected = false;
-        btn.className = 'btn-action btn-green';
-        btn.innerText = '🟢 HUBUNGKAN PORT FISIK TERPILIH';
-        badge.innerText = '● TERPUTUS';
-        badge.style.color = 'var(--red)';
-        logConsole(`Port USB ${portName} diputuskan.`, 'c-red');
+        btn.innerText = 'Hubungkan';
+        pill.className = 'status-pill disconnected';
+        pillText.innerText = 'Terputus';
+        addLog(`Port USB ${port} diputuskan.`, 'log-red');
       } else {
         isConnected = true;
-        btn.className = 'btn-action btn-red';
-        btn.innerText = `🔴 PUTUSKAN (${portName})`;
-        badge.innerText = `● TERHUBUNG (${portName})`;
-        badge.style.color = 'var(--green)';
-        logConsole(`Port USB ${portName} berhasil dihubungkan @ 9600 bps.`, 'c-green');
+        btn.innerText = 'Putuskan';
+        pill.className = 'status-pill connected';
+        pillText.innerText = 'Terhubung';
+        addLog(`Port USB ${port} terhubung @ 9600 bps.`, 'log-green');
       }
     }
 
-    function rescanPort() {
-      logConsole('Memindai ulang port serial fisik USB... Ditemukan 3 port aktif.');
-      alert('Pemindaian Port Selesai: Port COM3 (USB-SERIAL CH340 Arduino Mega) terdeteksi.');
+    function onPortChange() {
+      const port = document.getElementById('comPortSelect').value;
+      addLog(`Port diubah ke: ${port}`);
     }
 
-    function onPortSelectChange() {
-      const sel = document.getElementById('usbPortSelect').value;
-      logConsole(`Pilihan port diubah ke: ${sel}`);
-    }
-
-    // TABS SWITCHING (5 TABS)
-    let currentTab = 0;
-    function switchTab(idx) {
-      currentTab = idx;
-      const btns = document.querySelectorAll('.tab-btn');
-      btns.forEach((b, i) => b.classList.toggle('active', i === idx));
-      for (let i = 0; i < 5; i++) {
-        document.getElementById(`tab${i}`).classList.toggle('active', i === idx);
-      }
-      logConsole(`Tab Penjadwalan dialihkan ke Tab ${idx + 1}`);
-      updateSchedStatusLabel();
-    }
-
-    // SCHEDULER TICK & COUNTDOWN ENGINE
-    let isSchedActive = false;
-    let intervalSecondsLeft = 600; // default 10 menit
-    function toggleScheduler() {
-      isSchedActive = document.getElementById('chkSchedActive').checked;
-      const target = document.getElementById('schedTarget').value;
-      if (isSchedActive) {
-        resetIntervalTimer();
-        logConsole(`Penjadwalan otomatis DIAKTIFKAN (Target: ${target}).`, 'c-green');
-      } else {
-        logConsole('Penjadwalan otomatis DINONAKTIFKAN.', 'c-amber');
-      }
-      updateSchedStatusLabel();
-    }
-
-    function resetIntervalTimer() {
-      const min = parseFloat(document.getElementById('spinInterval').value) || 10;
-      intervalSecondsLeft = Math.max(5, Math.round(min * 60));
-    }
-
-    function runSchedulerTick() {
-      if (!isSchedActive) {
-        document.getElementById('schedLiveStatus').innerText = 'Status Penjadwalan: NONAKTIF (Centang tombol di atas)';
-        document.getElementById('schedLiveStatus').style.color = 'var(--text-muted)';
-        return;
-      }
-
-      const target = document.getElementById('schedTarget').value;
-
-      if (currentTab === 4) { // INTERVAL TAB
-        intervalSecondsLeft--;
-        const m = Math.floor(intervalSecondsLeft / 60);
-        const s = intervalSecondsLeft % 60;
-        document.getElementById('schedLiveStatus').innerText = 
-          `Jadwal Interval: Eksekusi berikutnya dlm ${m}m ${s < 10 ? '0'+s : s}s (Target: ${target})`;
-        document.getElementById('schedLiveStatus').style.color = 'var(--blue)';
-
-        if (intervalSecondsLeft <= 0) {
-          logConsole(`[SCHEDULER OTOMATIS] Timer interval tercapai! Memicu restart target: ${target}`, 'c-amber');
-          triggerScheduledRestart(target);
-          resetIntervalTimer();
-        }
-      } else if (currentTab === 0) { // DAILY
-        const targetH = document.getElementById('schedHour').value;
-        const targetM = document.getElementById('schedMin').value;
-        document.getElementById('schedLiveStatus').innerText = 
-          `Jadwal Harian: Setiap hari jam ${targetH}:${targetM} WIB (Target: ${target})`;
-        document.getElementById('schedLiveStatus').style.color = 'var(--blue)';
-      } else {
-        document.getElementById('schedLiveStatus').innerText = 
-          `Jadwal Aktif (Target: ${target})`;
-        document.getElementById('schedLiveStatus').style.color = 'var(--blue)';
-      }
-    }
-
-    function triggerTestIntervalNow() {
-      const target = document.getElementById('schedTarget').value;
-      logConsole(`[TEST SCHEDULER] Pemicu manual simulasi jadwal untuk target: ${target}`, 'c-amber');
-      triggerScheduledRestart(target);
-    }
-
-    function triggerScheduledRestart(target) {
-      if (target === 'ALL') {
-        execRestartAll();
-      } else if (target === 'CH1') {
-        execRestart(1);
-      } else if (target === 'CH2') {
-        execRestart(2);
-      }
-    }
-
-    // EKSEKUSI RESTART MANUAL
-    let totalCount = 0;
+    // RESTART LOGIC
+    let counter = 0;
     function incCounter() {
-      totalCount++;
-      document.getElementById('badgeCounter').innerText = totalCount + 'x';
+      counter++;
+      document.getElementById('counterText').innerText = `Total Restart: ${counter}x`;
     }
 
-    function execRestart(ch) {
+    function restartScanner(ch) {
       if (!isConnected) {
-        alert('Koneksi USB terputus! Hubungkan port terlebih dahulu.');
+        alert('Port USB terputus! Hubungkan terlebih dahulu.');
         return;
       }
       playClick();
       incCounter();
+      const dur = parseInt(document.getElementById('spinDuration').value) || 4;
+      addLog(`Kirim -> RESTART:${ch}:${dur * 1000}`);
+      addLog(`STATUS:RESTARTING:CH=${ch}`, 'log-amber');
 
-      const dur = parseInt(document.getElementById('spinDur').value) || 4;
-      logConsole(`Kirim -> RESTART:${ch}:${dur * 1000}`);
-      logConsole(`STATUS:RESTARTING:CH=${ch}:DURATION=${dur * 1000}`, 'c-amber');
-
-      // Update UI Hardware & Badges
-      setChannelState(ch, 'RESTARTING');
+      setVisualState(ch, 'RESTARTING');
 
       setTimeout(() => {
         playClick();
-        setChannelState(ch, 'NORMAL');
-        logConsole(`STATUS:RESTART_COMPLETE:CH${ch} (Scanner ${ch} Normal Kembali)`, 'c-green');
+        setVisualState(ch, 'NORMAL');
+        addLog(`STATUS:RESTART_COMPLETE:CH${ch}`, 'log-green');
       }, dur * 1000);
     }
 
-    function execRestartAll() {
+    function restartBoth() {
       if (!isConnected) {
-        alert('Koneksi USB terputus! Hubungkan port terlebih dahulu.');
+        alert('Port USB terputus! Hubungkan terlebih dahulu.');
         return;
       }
       incCounter();
-      const dur = parseInt(document.getElementById('spinDur').value) || 4;
-      logConsole(`Kirim -> RESTART:ALL:${dur * 1000}`);
-      logConsole(`STATUS:STARTING_STAGGERED_RESTART:DURATION=${dur * 1000}`, 'c-amber');
+      const dur = parseInt(document.getElementById('spinDuration').value) || 4;
+      addLog(`Kirim -> RESTART:ALL:${dur * 1000}`);
+      addLog('STATUS:STARTING_STAGGERED_RESTART', 'log-amber');
 
-      // Scanner 1 Restart
+      // Scanner 1
       playClick();
-      setChannelState(1, 'RESTARTING');
-      logConsole(`STATUS:STAGGERED:CH1_CUT (Scanner 1 Diputus)`, 'c-amber');
+      setVisualState(1, 'RESTARTING');
 
-      // Scanner 2 Restart setelah jeda 1.5 detik
+      // Scanner 2 setelah 1.5 detik
       setTimeout(() => {
         playClick();
-        setChannelState(2, 'RESTARTING');
-        logConsole(`STATUS:STAGGERED:CH2_CUT (Jeda 1.5s -> Scanner 2 Diputus)`, 'c-amber');
+        setVisualState(2, 'RESTARTING');
       }, 1500);
 
-      // Selesai
+      // Normal
       setTimeout(() => {
         playClick();
-        setChannelState(1, 'NORMAL');
-        setChannelState(2, 'NORMAL');
-        logConsole(`STATUS:STAGGERED_COMPLETE:ALL_ON (Kedua Gerbang Kembali Normal)`, 'c-green');
+        setVisualState(1, 'NORMAL');
+        setVisualState(2, 'NORMAL');
+        addLog('STATUS:STAGGERED_COMPLETE:ALL_ON', 'log-green');
       }, (dur * 1000) + 2000);
     }
 
-    function execPower(ch, on) {
-      playClick();
-      if (on) {
-        logConsole(`Kirim -> POWER:${ch}:ON`);
-        setChannelState(ch, 'NORMAL');
-        logConsole(`STATUS:POWER:CH${ch}:ON`, 'c-green');
-      } else {
-        logConsole(`Kirim -> POWER:${ch}:OFF`);
-        setChannelState(ch, 'OFF');
-        logConsole(`STATUS:POWER:CH${ch}:OFF`, 'c-red');
-      }
-    }
-
-    function setChannelState(ch, state) {
-      const hwGate = document.getElementById(`hwGate${ch}`);
-      const hwScan = document.getElementById(`hwScan${ch}`);
-      const hwScanTxt = document.getElementById(`hwScanTxt${ch}`);
-      const hwPwr = document.getElementById(`hwPwr${ch}`);
-      const cube = document.getElementById(`cube${ch}`);
-      const cubeStat = document.getElementById(`cubeStatus${ch}`);
-      const badge = document.getElementById(`badgeSc${ch}`);
+    function setVisualState(ch, state) {
+      const box = document.getElementById(`boxSc${ch}`);
+      const txt = document.getElementById(`stateSc${ch}`);
+      const hwTxt = document.getElementById(`hw${ch}State`);
 
       if (state === 'NORMAL') {
-        hwGate.className = 'gate-unit active';
-        hwScan.classList.remove('off');
-        hwScanTxt.innerText = '🟢 STANDBY SCAN';
-        hwScanTxt.style.color = '#22c55e';
-        hwPwr.innerText = '⚡ Adaptor 5V Mengalir (NC)';
-        cube.classList.remove('tripped');
-        cubeStat.innerText = 'NC TERTUTUP (ON)';
-        cubeStat.style.color = '#4ade80';
-        badge.innerText = '🟢 DAYA ON (NC)';
-        badge.style.color = 'var(--green)';
+        box.className = 'scanner-box';
+        txt.className = 'scanner-state';
+        txt.innerText = '🟢 Normal (Power ON)';
+        hwTxt.innerText = '[ON]';
+        hwTxt.style.color = 'var(--green)';
       } else if (state === 'RESTARTING') {
-        hwGate.className = 'gate-unit restarting';
-        hwScan.classList.add('off');
-        hwScanTxt.innerText = '🟡 RESTARTING (4 DETIK)';
-        hwScanTxt.style.color = '#f59e0b';
-        hwPwr.innerText = '🔴 Daya Terputus (Relay Aktif)';
-        cube.classList.add('tripped');
-        cubeStat.innerText = 'NC TERBUKA (CUT)';
-        cubeStat.style.color = '#ef4444';
-        badge.innerText = '🟡 RESTART (CUT)';
-        badge.style.color = 'var(--amber)';
-      } else if (state === 'OFF') {
-        hwGate.className = 'gate-unit off';
-        hwScan.classList.add('off');
-        hwScanTxt.innerText = '🔴 POWER OFF';
-        hwScanTxt.style.color = '#ef4444';
-        hwPwr.innerText = '🔴 Mati Total (0V)';
-        cube.classList.add('tripped');
-        cubeStat.innerText = 'NC TERBUKA (OFF)';
-        cubeStat.style.color = '#ef4444';
-        badge.innerText = '🔴 MATI TOTAL (OFF)';
-        badge.style.color = 'var(--red)';
+        box.className = 'scanner-box restarting';
+        txt.className = 'scanner-state restarting';
+        txt.innerText = '🟡 Sedang Restart (4s)...';
+        hwTxt.innerText = '[RESTART]';
+        hwTxt.style.color = 'var(--amber)';
       }
     }
 
-    function tapTiket(ch) {
-      const isDead = document.getElementById(`hwGate${ch}`).classList.contains('restarting') ||
-                     document.getElementById(`hwGate${ch}`).classList.contains('off');
-      if (isDead) {
-        logConsole(`❌ [GATE ${ch}] Penumpang tap tiket GAGAL! Scanner sedang mati/reboot!`, 'c-red');
-        alert(`Scanner ${ch} sedang mati / restart! Tiket tidak bisa di-scan.`);
+    // TABS
+    let activeTab = 0;
+    function setTab(idx) {
+      activeTab = idx;
+      document.querySelectorAll('.tab-item').forEach((b, i) => b.classList.toggle('active', i === idx));
+      for (let i = 0; i < 5; i++) {
+        document.getElementById(`pane${i}`).classList.toggle('active', i === idx);
+      }
+      updateSchedStatus();
+    }
+
+    // SCHEDULER
+    let isSchedOn = false;
+    let countdownSeconds = 600;
+    function toggleScheduler() {
+      isSchedOn = document.getElementById('chkSchedActive').checked;
+      if (isSchedOn) {
+        resetInterval();
+        addLog('Jadwal otomatis DIAKTIFKAN.', 'log-green');
       } else {
-        logConsole(`✅ [GATE ${ch}] Tiket Penumpang terverifikasi: PASS_GATE_${ch}_OK`, 'c-green');
-        const box = document.getElementById(`hwGate${ch}`);
-        box.style.borderColor = '#38bdf8';
-        setTimeout(() => { box.style.borderColor = '#22c55e'; }, 300);
+        addLog('Jadwal otomatis DINONAKTIFKAN.', 'log-amber');
+      }
+      updateSchedStatus();
+    }
+
+    function resetInterval() {
+      const val = parseFloat(document.getElementById('intervalInput').value) || 10;
+      countdownSeconds = Math.max(5, Math.round(val * 60));
+    }
+
+    function updateSchedStatus() {
+      const label = document.getElementById('schedCountdownText');
+      if (!isSchedOn) {
+        label.innerText = 'Status Jadwal: Nonaktif';
+        label.style.color = 'var(--muted)';
+        return;
+      }
+      const target = document.getElementById('schedTarget').value;
+      if (activeTab === 0) {
+        const h = document.getElementById('schedHour').value;
+        const m = document.getElementById('schedMin').value;
+        label.innerText = `Jadwal Harian: Pukul ${h}:${m} WIB (Target: ${target})`;
+        label.style.color = 'var(--primary)';
+      } else if (activeTab === 4) {
+        const min = Math.floor(countdownSeconds / 60);
+        const sec = countdownSeconds % 60;
+        label.innerText = `Hitung mundur interval: ${min}m ${sec < 10 ? '0'+sec : sec}s (Target: ${target})`;
+        label.style.color = 'var(--primary)';
+      } else {
+        label.innerText = `Jadwal Aktif (Target: ${target})`;
+        label.style.color = 'var(--primary)';
+      }
+    }
+
+    function tickScheduler() {
+      if (!isSchedOn) return;
+      if (activeTab === 4) {
+        countdownSeconds--;
+        updateSchedStatus();
+        if (countdownSeconds <= 0) {
+          addLog('[Jadwal] Interval tercapai. Eksekusi restart...', 'log-amber');
+          fireScheduled();
+          resetInterval();
+        }
+      } else {
+        updateSchedStatus();
+      }
+    }
+
+    function testFireNow() {
+      addLog('[Tes Jadwal] Eksekusi simulasi jadwal langsung.', 'log-amber');
+      fireScheduled();
+    }
+
+    function fireScheduled() {
+      const target = document.getElementById('schedTarget').value;
+      if (target === 'ALL') restartBoth();
+      else if (target === 'CH1') restartScanner(1);
+      else if (target === 'CH2') restartScanner(2);
+    }
+
+    function testPassengerScan(ch) {
+      const isRestarting = document.getElementById(`boxSc${ch}`).classList.contains('restarting');
+      if (isRestarting) {
+        addLog(`❌ [Gate ${ch}] Tap tiket GAGAL: Scanner sedang reboot!`, 'log-red');
+        alert(`Scanner ${ch} sedang restart (daya terputus). Tiket tidak terbaca!`);
+      } else {
+        addLog(`✅ [Gate ${ch}] Tap tiket SUKSES: PASS_OK`, 'log-green');
       }
     }
   </script>
